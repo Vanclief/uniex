@@ -17,8 +17,15 @@ func New(publicKey string, secretKey string) (*API, error) {
 	return nil, nil
 }
 
+// func (api *API)
+
 func (api *API) GetHistorical(symbol string, start, end time.Time) ([]market.Candle, error) {
 	const op = "kraken.GetHistorical"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
+func (api *API) GetOrderBook(symbol string) ([]interface{}, error) {
+	const op = "kraken.GetOrderBook"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 

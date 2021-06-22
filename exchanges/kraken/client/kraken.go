@@ -72,6 +72,7 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 	if data == nil {
 		data = url.Values{}
 	}
+
 	// data.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
 
 	// Step 1: Create the request
@@ -79,6 +80,8 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
+
+	fmt.Println("request", request)
 
 	// Generate the signature
 	signature, err := c.generateSignature(URL, data)
@@ -120,8 +123,6 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 		errMsg := fmt.Sprintf("Kraken request returned an error: %s", krakenResponse.Error)
 		return ez.New(op, ez.EINTERNAL, errMsg, nil)
 	}
-
-	// fmt.Println("krakenResponse", krakenResponse.Result)
 
 	defer response.Body.Close()
 
