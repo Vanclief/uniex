@@ -3,6 +3,7 @@ package kraken
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/uniex/exchanges/kraken/client/models"
@@ -29,12 +30,12 @@ func (c *Client) GetOrderBook(pair string, depth int64) (map[string]models.Order
 
 	// GetOrderBook - Gets order book for `pair` with `depth`
 	data := url.Values{
-		"pair": {pair},
-		// "count": {strconv.FormatInt(depth, 10)},
+		"pair":  {pair},
+		"count": {strconv.FormatInt(depth, 10)},
 	}
 
 	response := make(map[string]models.OrderBook)
-	err := c.httpRequest("GET", URL, data, &response)
+	err := c.httpRequest("POST", URL, data, &response)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}

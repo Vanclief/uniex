@@ -81,8 +81,6 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 		return ez.Wrap(op, err)
 	}
 
-	fmt.Println("request", request)
-
 	// Generate the signature
 	signature, err := c.generateSignature(URL, data)
 	if err != nil {

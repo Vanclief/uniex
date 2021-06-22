@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vanclief/ez"
 )
 
 func TestGetOrderBook(t *testing.T) {
@@ -15,8 +14,6 @@ func TestGetOrderBook(t *testing.T) {
 	ob, err := client.GetOrderBook("ETHUSD", 10)
 	assert.Nil(t, err)
 	assert.NotNil(t, ob)
-
-	ez.ErrorStacktrace(err)
 
 }
 
