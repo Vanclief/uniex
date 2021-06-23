@@ -8,12 +8,12 @@ import (
 	krakenclient "github.com/vanclief/uniex/exchanges/kraken/client"
 )
 
-// Kraken represents the interface
+// API - Kraken API
 type API struct {
 	Client *krakenclient.Client
 }
 
-func New(publicKey string, secretKey string) (*API, error) {
+func New(publicKey, secretKey string) (*API, error) {
 	client := krakenclient.New(publicKey, secretKey)
 	return &API{Client: client}, nil
 }
