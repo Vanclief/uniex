@@ -6,6 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetTicker(t *testing.T) {
+
+	client := New("", "")
+	assert.NotNil(t, client)
+
+	tick, err := client.GetTicker("ETHUSD")
+	assert.Nil(t, err)
+	assert.NotNil(t, tick)
+}
+
 func TestGetOrderBook(t *testing.T) {
 
 	client := New("", "")

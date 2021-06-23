@@ -17,14 +17,17 @@ func New(publicKey string, secretKey string) (*API, error) {
 	return nil, nil
 }
 
-// func (api *API)
-
-func (api *API) GetHistorical(symbol string, start, end time.Time) ([]market.Candle, error) {
-	const op = "kraken.GetHistorical"
+func (api *API) GetTicker(asset market.Asset) ([]market.Ticker, error) {
+	const op = "kraken.GetTicker"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetOrderBook(symbol string) ([]interface{}, error) {
+func (api *API) GetHistoricalData(symbol string, start, end time.Time) ([]market.Candle, error) {
+	const op = "kraken.GetHistoricalData"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
+func (api *API) GetOrderBook(asset market.Asset) (*market.OrderBook, error) {
 	const op = "kraken.GetOrderBook"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }

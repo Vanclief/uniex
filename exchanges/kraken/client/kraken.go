@@ -22,12 +22,6 @@ type Client struct {
 	http      *http.Client
 }
 
-// KrakenResponse is the default response from the Kraken API
-type KrakenResponse struct {
-	Error  []string    `json:"error"`
-	Result interface{} `json:"result"`
-}
-
 // New initializes a new Kraken API Client
 func New(APIKey, APISecret string) *Client {
 

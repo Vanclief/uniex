@@ -8,32 +8,34 @@ import (
 	kraken "github.com/vanclief/uniex/exchanges/kraken/api"
 )
 
+// Exchange - An exchange or market data API
 type Exchange struct {
-	API      ExchangeAPI
-	TakerFee int
+	API ExchangeAPI
+	// TODO?
 }
 
-// ExchangeAPI represents an unified exchange API
+// ExchangeAPI - Interface for an unified exchange API
 type ExchangeAPI interface {
 	// Public Endpoints
-	// GetTicker(symbol string) ([]market.Tick)
-	GetHistorical(symbol string, start, end time.Time) ([]market.Candle, error)
+	GetTicker(asset market.Asset) ([]market.Ticker, error)
+	GetHistoricalData(symbol string, start, end time.Time) ([]market.Candle, error)
+	GetOrderBook(asset market.Asset) (*market.OrderBook, error)
 	// ListAssets() ([]market.Asset, error)
-	GetOrderBook(symbol string) ([]interface{}, error)
 
 	// Private Endpoints
-	GetPositions() ([]market.Position, error)
-	GetTrades() ([]market.Trade, error)
+	// GetPositions() ([]market.Position, error)
+	// GetTrades() ([]market.Trade, error)
 	// GetFundings() ([]market.Funding, error)
 	// GetWithdraws() ([]market.Withdraw, error)
 	// GetOrders() ([]market.Order, error)
 	// CreateOrder() (market.Order, error)
 	// CancelOrder() (bool, error)
+	// Withdraw() (market.Asset, error)
 }
 
-// NewKraken returns a new Kraken.com exchange unified interface
-func NewKraken() (*Exchange, error) {
-	const op = "uniex.NewKraken"
+// Kraken - Returns a new Kraken.com exchange unified interface
+func Kraken() (*Exchange, error) {
+	const op = "uniex.Kraken"
 
 	api, err := kraken.New("test", "test")
 	if err != nil {
