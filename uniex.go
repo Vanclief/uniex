@@ -18,7 +18,7 @@ type Exchange struct {
 type ExchangeAPI interface {
 	// Public Endpoints
 	GetTicker(asset market.Asset) ([]market.Ticker, error)
-	GetHistoricalData(symbol string, start, end time.Time) ([]market.Candle, error)
+	GetHistoricalData(asset market.Asset, start, end time.Time) ([]market.Candle, error)
 	GetOrderBook(asset market.Asset) (*market.OrderBook, error)
 	// ListAssets() ([]market.Asset, error)
 
