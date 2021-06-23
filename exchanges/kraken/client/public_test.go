@@ -1,4 +1,4 @@
-package kraken
+package krakenclient
 
 import (
 	"testing"
@@ -35,8 +35,6 @@ func TestGetOHLCData(t *testing.T) {
 	ohlc, err := client.GetOHLCData("ETHUSD", 15, 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, ohlc)
-
-	assert.FailNow(t, "now")
 }
 
 func TestGetAssetPairs(t *testing.T) {
