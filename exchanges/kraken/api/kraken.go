@@ -71,7 +71,59 @@ func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]ma
 
 func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 	const op = "kraken.GetOrderBook"
-	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+	const maxDepth = 500
+
+	symbol := pair.Base.Symbol + pair.Quote.Symbol
+
+	obMap, err := api.Client.GetOrderBook(symbol, maxDepth)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	orderBook := &market.OrderBook{}
+
+	// We only want the first item
+	for _, value := range obMap {
+
+		// Add the Asks
+		asks := []market.OrderBookRow{}
+		askTotalVolume := float64(0)
+
+		for _, ask := range value.Asks {
+
+			askTotalVolume = askTotalVolume + ask.Volume
+
+			askRow := market.OrderBookRow{
+				Price:       ask.Price,
+				Volume:      ask.Volume,
+				TotalVolume: askTotalVolume,
+			}
+
+			asks = append(asks, askRow)
+		}
+		orderBook.Asks = asks
+
+		// Add the bids
+		bids := []market.OrderBookRow{}
+		bidsTotalVolume := float64(0)
+
+		for _, bid := range value.Asks {
+
+			bidsTotalVolume = bidsTotalVolume + bid.Volume
+
+			bidRow := market.OrderBookRow{
+				Price:       bid.Price,
+				Volume:      bid.Volume,
+				TotalVolume: bidsTotalVolume,
+			}
+
+			bids = append(bids, bidRow)
+		}
+
+		orderBook.Bids = bids
+	}
+
+	return orderBook, nil
 }
 
 func (api *API) GetPositions() ([]market.Position, error) {
