@@ -1,6 +1,7 @@
 package kraken
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -17,20 +18,25 @@ func New(publicKey string, secretKey string) (*API, error) {
 	return nil, nil
 }
 
-func (api *API) GetTicker(asset market.Asset) (*market.Ticker, error) {
+func (api *API) GetTicker(pair market.Pair) (*market.Ticker, error) {
 	const op = "kraken.GetTicker"
 
-	// api.Client.GetTicker(asset.Symbol)
+	t, err := api.Client.GetTicker(pair.Base.Symbol)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	fmt.Println("t", t)
 
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetHistoricalData(asset market.Asset, start, end time.Time) ([]market.Candle, error) {
+func (api *API) GetHistoricalData(pair market.Pair, start, end time.Time) ([]market.Candle, error) {
 	const op = "kraken.GetHistoricalData"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetOrderBook(asset market.Asset) (*market.OrderBook, error) {
+func (api *API) GetOrderBook(pair market.Pair) (*market.OrderBook, error) {
 	const op = "kraken.GetOrderBook"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }

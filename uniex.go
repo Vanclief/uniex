@@ -17,9 +17,9 @@ type Exchange struct {
 // ExchangeAPI - Interface for an unified exchange API
 type ExchangeAPI interface {
 	// Public Endpoints
-	GetTicker(asset market.Asset) (*market.Ticker, error)
-	GetHistoricalData(asset market.Asset, start, end time.Time) ([]market.Candle, error)
-	GetOrderBook(asset market.Asset) (*market.OrderBook, error)
+	GetTicker(pair market.Pair) (*market.Ticker, error)
+	GetHistoricalData(pair market.Pair, start, end time.Time) ([]market.Candle, error)
+	GetOrderBook(pair market.Pair) (*market.OrderBook, error)
 	// ListAssets() ([]market.Asset, error)
 
 	// Private Endpoints
