@@ -1,4 +1,4 @@
-package binance
+package binanceclient
 
 // import (
 // 	"context"
@@ -42,7 +42,7 @@ package binance
 // 		config.BinanceHost,
 // 		env.BinanceAPIKey,
 // 		hmacSigner,
-// 		logger,
+// 		nil,
 // 		ctx,
 // 	)
 // 	b := goBinance.NewBinance(binanceService)
