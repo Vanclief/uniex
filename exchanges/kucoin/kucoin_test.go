@@ -1,7 +1,6 @@
 package kucoin
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -14,10 +13,8 @@ var kucoinAPI *API
 func init() {
 	viper.AutomaticEnv()
 	apiKey := viper.GetString("KUCOIN_API_KEY")
-	secretKey := viper.GetString("KUCOIN_PRIVATE_KEY")
+	secretKey := viper.GetString("KUCOIN_SECRET_KEY")
 	passphrase := viper.GetString("KUCOIN_PASSPHRASE")
-
-	fmt.Println("apiKey", apiKey)
 
 	kucoinAPI, _ = New(apiKey, secretKey, passphrase)
 }
@@ -44,7 +41,4 @@ func TestGetOrderBook(t *testing.T) {
 	orderBook, err := kucoinAPI.GetOrderBook(ETHUSDT)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
-
-	// fmt.Println("orderbook", orderBook)
-	// assert.FailNow(t, "now")
 }

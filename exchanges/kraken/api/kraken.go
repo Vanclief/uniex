@@ -107,7 +107,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 		bids := []market.OrderBookRow{}
 		bidsTotalVolume := float64(0)
 
-		for _, bid := range value.Asks {
+		for _, bid := range value.Bids {
 
 			bidsTotalVolume = bidsTotalVolume + bid.Volume
 

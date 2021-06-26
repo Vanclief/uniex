@@ -1,7 +1,6 @@
 package kucoin
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -107,52 +106,64 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	fmt.Println("kucoin", kucoinOrderBook)
-
-	return nil, nil
-
 	orderBook := &market.OrderBook{}
 
-	// // We only want the first item
-	// for _, value := range obMap {
+	// Add the Asks
+	asks := []market.OrderBookRow{}
+	askTotalVolume := float64(0)
 
-	// 	// Add the Asks
-	// 	asks := []market.OrderBookRow{}
-	// 	askTotalVolume := float64(0)
+	for _, ask := range kucoinOrderBook.Asks {
 
-	// 	for _, ask := range value.Asks {
+		askPrice, err := strconv.ParseFloat(ask[0], 64)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 
-	// 		askTotalVolume = askTotalVolume + ask.Volume
+		askVolume, err := strconv.ParseFloat(ask[1], 64)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 
-	// 		askRow := market.OrderBookRow{
-	// 			Price:       ask.Price,
-	// 			Volume:      ask.Volume,
-	// 			TotalVolume: askTotalVolume,
-	// 		}
+		askTotalVolume = askTotalVolume + askVolume
 
-	// 		asks = append(asks, askRow)
-	// 	}
-	// 	orderBook.Asks = asks
+		askRow := market.OrderBookRow{
+			Price:       askPrice,
+			Volume:      askVolume,
+			TotalVolume: askTotalVolume,
+		}
 
-	// 	// Add the bids
-	// 	bids := []market.OrderBookRow{}
-	// 	bidsTotalVolume := float64(0)
+		asks = append(asks, askRow)
+	}
+	orderBook.Asks = asks
 
-	// 	for _, bid := range value.Asks {
+	// Add the bids
+	bids := []market.OrderBookRow{}
+	bidsTotalVolume := float64(0)
 
-	// 		bidsTotalVolume = bidsTotalVolume + bid.Volume
+	for _, bid := range kucoinOrderBook.Bids {
 
-	// 		bidRow := market.OrderBookRow{
-	// 			Price:       bid.Price,
-	// 			Volume:      bid.Volume,
-	// 			TotalVolume: bidsTotalVolume,
-	// 		}
+		bidPrice, err := strconv.ParseFloat(bid[0], 64)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 
-	// 		bids = append(bids, bidRow)
-	// 	}
+		bidVolume, err := strconv.ParseFloat(bid[1], 64)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 
-	// 	orderBook.Bids = bids
-	// }
+		bidsTotalVolume = bidsTotalVolume + bidVolume
+
+		bidRow := market.OrderBookRow{
+			Price:       bidPrice,
+			Volume:      bidVolume,
+			TotalVolume: bidsTotalVolume,
+		}
+
+		bids = append(bids, bidRow)
+	}
+
+	orderBook.Bids = bids
 
 	return orderBook, nil
 }
