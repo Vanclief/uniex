@@ -3,36 +3,41 @@ package kraken
 import (
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 )
 
-func TestGetTicker(t *testing.T) {
+var krakenAPI *API
 
-	kraken, err := New("", "")
-	assert.Nil(t, err)
+func init() {
+	viper.AutomaticEnv()
+	apiKey := viper.GetString("KRAKEN_API_KEY")
+	secretKey := viper.GetString("KRAKEN_SECRET_KEY")
+
+	krakenAPI, _ = New(apiKey, secretKey)
+}
+
+func TestGetTicker(t *testing.T) {
 
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USD", "US Dollar")
 
 	ETHUSD, _ := market.NewPair(ETH, USD)
 
-	ticker, err := kraken.GetTicker(ETHUSD)
+	ticker, err := krakenAPI.GetTicker(ETHUSD)
 	assert.Nil(t, err)
 	assert.NotNil(t, ticker)
 }
 
 func TestGetOrderBook(t *testing.T) {
 
-	kraken, err := New("", "")
-	assert.Nil(t, err)
-
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USD", "US Dollar")
 
 	ETHUSD, _ := market.NewPair(ETH, USD)
 
-	orderBook, err := kraken.GetOrderBook(ETHUSD)
+	orderBook, err := krakenAPI.GetOrderBook(ETHUSD)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }
