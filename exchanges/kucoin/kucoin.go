@@ -101,9 +101,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	fmt.Println("response", response)
-
-	kucoinOrderBook := kucoin.FullOrderBookV2Model{}
+	kucoinOrderBook := kucoin.FullOrderBookModel{}
 	err = response.ReadData(&kucoinOrderBook)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
