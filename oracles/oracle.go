@@ -17,6 +17,5 @@ type DataOracleAPI interface {
 	// Public Endpoints
 	GetTicker(pair *market.Pair) (*market.Ticker, error)
 	GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error)
-	GetOrderBook(pair *market.Pair) (*market.OrderBook, error)
 	// ListAssets() ([]market.Asset, error)
 }

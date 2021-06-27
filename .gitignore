@@ -1,3 +1,10 @@
 # Ignore env variables
 .env
 .go_test_env
+
+.idea/
+.vscode/
+
+.DS_Store
+
+vendor/
