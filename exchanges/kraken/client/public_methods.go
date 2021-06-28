@@ -11,7 +11,7 @@ import (
 
 // GetAssetPairs returns an array with all the tradable AssetPairs
 func (c *Client) GetAssetPairs() (map[string]AssetPair, error) {
-	const op = "kraken.Client.GetAssetPairs"
+	const op = "krakenclient.GetAssetPairs"
 	const URL = "https://api.kraken.com/0/public/AssetPairs"
 
 	response := make(map[string]AssetPair)
@@ -26,7 +26,7 @@ func (c *Client) GetAssetPairs() (map[string]AssetPair, error) {
 // GetTicker - Gets array of tickers passed through `pairs` arg.
 // `pairs` - array of needed pairs. All by default if empty array passed or `pairs` is nil.
 func (c *Client) GetTicker(pairs ...string) (map[string]Ticker, error) {
-	const op = "kraken.Client.Ticker"
+	const op = "krakenclient.Ticker"
 	const URL = "https://api.kraken.com/0/public/Ticker"
 
 	var data url.Values
@@ -49,7 +49,7 @@ func (c *Client) GetTicker(pairs ...string) (map[string]Ticker, error) {
 
 // GetOrderBook - Gets order book for `pair` with `depth`
 func (c *Client) GetOrderBook(pair string, depth int64) (map[string]OrderBook, error) {
-	const op = "kraken.Client.GetOrderBook"
+	const op = "krakenclient.GetOrderBook"
 	const URL = "https://api.kraken.com/0/public/Depth"
 
 	// GetOrderBook - Gets order book for `pair` with `depth`
@@ -69,7 +69,7 @@ func (c *Client) GetOrderBook(pair string, depth int64) (map[string]OrderBook, e
 
 // GetOHLCData returns an array with
 func (c *Client) GetOHLCData(pair string, interval, since int) (*OHLCResponse, error) {
-	const op = "kraken.Client.GetOHLCData"
+	const op = "krakenclient.GetOHLCData"
 	const URL = "https://api.kraken.com/0/public/OHLC"
 
 	data := url.Values{

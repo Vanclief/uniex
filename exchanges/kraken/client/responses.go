@@ -653,6 +653,13 @@ type TradesHistoryResponse struct {
 	Count  int64                   `json:"count"`
 }
 
+// DepositAddress - response from calling GetDepositAddresses
+type DepositAddress struct {
+	Address  string `json:"address"`
+	ExpireTM string `json:"expiretm"`
+	New      bool   `json:"new"`
+}
+
 // DepositMethods - respons on GetDepositMethods request
 type DepositMethods struct {
 	Method     string `json:"method"`

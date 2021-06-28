@@ -8,8 +8,6 @@ import (
 	"github.com/vanclief/finmod/market"
 )
 
-var krakenAPI *API
-
 func init() {
 	viper.AutomaticEnv()
 	apiKey := viper.GetString("KRAKEN_API_KEY")
@@ -40,10 +38,4 @@ func TestGetOrderBook(t *testing.T) {
 	orderBook, err := krakenAPI.GetOrderBook(ETHUSD)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
-}
-
-func TestGetBalances(t *testing.T) {
-	balance, err := krakenAPI.GetBalances()
-	assert.Nil(t, err)
-	assert.NotNil(t, balance)
 }

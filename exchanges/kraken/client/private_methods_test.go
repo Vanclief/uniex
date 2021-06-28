@@ -26,3 +26,23 @@ func TestGetAccountBalance(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, balance)
 }
+
+func TestGetDepositMethods(t *testing.T) {
+	methods, err := client.GetDepositMethods("XBT")
+	assert.Nil(t, err)
+	assert.NotNil(t, methods)
+
+	// Use this to map the methods
+	// for _, m := range methods {
+	// 	fmt.Println("Method", m.Method)
+	// }
+
+	// assert.FailNow(t, "Now")
+}
+
+func TestGetDepositAddresses(t *testing.T) {
+	// address, err := client.GetDepositAddresses("ETH", "Ether (Hex)")
+	address, err := client.GetDepositAddresses("XBT", "Bitcoin")
+	assert.Nil(t, err)
+	assert.NotNil(t, address)
+}
