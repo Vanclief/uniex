@@ -1,2 +1,3 @@
 # Ignore env variables
+.env
 .go_test_env
