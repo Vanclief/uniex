@@ -563,36 +563,41 @@ type SpreadResponse struct {
 
 // BalanceResponse - response on account balance request
 type BalanceResponse struct {
-	ADA  float64 `json:",string"`
-	BCH  float64 `json:",string"`
-	BSV  float64 `json:",string"`
-	DASH float64 `json:",string"`
-	EOS  float64 `json:",string"`
-	GNO  float64 `json:",string"`
-	KFEE float64 `json:",string"`
-	QTUM float64 `json:",string"`
-	USDT float64 `json:",string"`
-	XDAO float64 `json:",string"`
-	XETC float64 `json:",string"`
-	XETH float64 `json:",string"`
-	XICN float64 `json:",string"`
-	XLTC float64 `json:",string"`
-	XMLN float64 `json:",string"`
-	XNMC float64 `json:",string"`
-	XREP float64 `json:",string"`
-	XXBT float64 `json:",string"`
-	XXDG float64 `json:",string"`
-	XXLM float64 `json:",string"`
-	XXMR float64 `json:",string"`
-	XXRP float64 `json:",string"`
-	XXTZ float64 `json:",string"`
-	XXVN float64 `json:",string"`
-	XZEC float64 `json:",string"`
-	ZCAD float64 `json:",string"`
+	AAVE  float64 `json:",string"`
+	ALGO  float64 `json:",string"`
+	BAT   float64 `json:",string"`
+	BTC   float64 `json:",string"`
+	BCH   float64 `json:",string"`
+	ADA   float64 `json:",string"`
+	LINK  float64 `json:",string"`
+	COMP  float64 `json:",string"`
+	ATOM  float64 `json:",string"`
+	DAI   float64 `json:",string"`
+	DOGE  float64 `json:",string"`
+	EOS   float64 `json:",string"`
+	ETH   float64 `json:",string"`
+	ETC   float64 `json:",string"`
+	EWT   float64 `json:",string"`
+	FILE  float64 `json:",string"`
+	FLOW  float64 `json:",string"`
+	LTC   float64 `json:",string"`
+	XMR   float64 `json:",string"`
+	NANO  float64 `json:",string"`
+	DOT   float64 `json:",string"`
+	MATIC float64 `json:",string"`
+	OCEAN float64 `json:",string"`
+	QTUM  float64 `json:",string"`
+	SC    float64 `json:",string"`
+	XLM   float64 `json:",string"`
+	USDT  float64 `json:",string"`
+	XTZ   float64 `json:",string"`
+	TRX   float64 `json:",string"`
+	UNI   float64 `json:",string"`
+	USDC  float64 `json:",string"`
+	XRP   float64 `json:",string"`
+	GRT   float64 `json:",string"`
+
 	ZEUR float64 `json:",string"`
-	ZGBP float64 `json:",string"`
-	ZJPY float64 `json:",string"`
-	ZKRW float64 `json:",string"`
 	ZUSD float64 `json:",string"`
 }
 

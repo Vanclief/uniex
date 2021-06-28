@@ -21,6 +21,7 @@ type ExchangeAPI interface {
 	// ListAssets() ([]market.Asset, error)
 
 	// Private Endpoints
+	GetBalances() (*market.BalanceSnapshot, error)
 	// GetPositions() ([]market.Position, error)
 	// GetTrades() ([]market.Trade, error)
 	// GetFundings() ([]market.Funding, error)

@@ -1,7 +1,6 @@
 package krakenclient
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -22,10 +21,8 @@ func TestGetFundings(t *testing.T) {
 
 }
 
-func GetAccountBalance(t *testing.T) {
-
+func TestGetAccountBalance(t *testing.T) {
 	balance, err := client.GetAccountBalance()
 	assert.Nil(t, err)
-	fmt.Println("balance", balance)
-	fmt.Println("err", err)
+	assert.NotNil(t, balance)
 }

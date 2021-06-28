@@ -41,3 +41,9 @@ func TestGetOrderBook(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }
+
+func TestGetBalances(t *testing.T) {
+	balance, err := krakenAPI.GetBalances()
+	assert.Nil(t, err)
+	assert.NotNil(t, balance)
+}

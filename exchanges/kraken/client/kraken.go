@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/vanclief/ez"
 )
@@ -66,8 +67,7 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 	if data == nil {
 		data = url.Values{}
 	}
-
-	// data.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
+	data.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
 
 	// Step 1: Create the request
 	request, err := http.NewRequest(method, URL, strings.NewReader(data.Encode()))
