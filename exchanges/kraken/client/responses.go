@@ -792,3 +792,8 @@ type GetWebSocketTokenResponse struct {
 	Token   string `json:"token"`
 	Expires int64  `json:"expires"`
 }
+
+// WithdrawFundsResponse - response on WithdraFunds request
+type WithdrawFundsResponse struct {
+	RefID string `json:"refid"`
+}

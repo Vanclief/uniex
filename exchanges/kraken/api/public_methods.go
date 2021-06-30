@@ -39,13 +39,13 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		ticker.Ask = &market.OrderBookRow{
 			Price:       value.Ask.Price,
 			Volume:      value.Ask.Volume,
-			TotalVolume: value.Ask.WholeLotVolume,
+			AccumVolume: value.Ask.WholeLotVolume,
 		}
 
 		ticker.Bid = &market.OrderBookRow{
 			Price:       value.Bid.Price,
 			Volume:      value.Bid.Volume,
-			TotalVolume: value.Bid.WholeLotVolume,
+			AccumVolume: value.Bid.WholeLotVolume,
 		}
 		break
 	}
@@ -76,16 +76,16 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 
 		// Add the Asks
 		asks := []market.OrderBookRow{}
-		askTotalVolume := float64(0)
+		askAccumVolume := float64(0)
 
 		for _, ask := range value.Asks {
 
-			askTotalVolume = askTotalVolume + ask.Volume
+			askAccumVolume = askAccumVolume + ask.Volume
 
 			askRow := market.OrderBookRow{
 				Price:       ask.Price,
 				Volume:      ask.Volume,
-				TotalVolume: askTotalVolume,
+				AccumVolume: askAccumVolume,
 			}
 
 			asks = append(asks, askRow)
@@ -94,16 +94,16 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 
 		// Add the bids
 		bids := []market.OrderBookRow{}
-		bidsTotalVolume := float64(0)
+		bidsAccumVolume := float64(0)
 
 		for _, bid := range value.Bids {
 
-			bidsTotalVolume = bidsTotalVolume + bid.Volume
+			bidsAccumVolume = bidsAccumVolume + bid.Volume
 
 			bidRow := market.OrderBookRow{
 				Price:       bid.Price,
 				Volume:      bid.Volume,
-				TotalVolume: bidsTotalVolume,
+				AccumVolume: bidsAccumVolume,
 			}
 
 			bids = append(bids, bidRow)

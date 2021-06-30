@@ -14,5 +14,5 @@ func Kraken(apiKey, apiSecret string) (*Exchange, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	return &Exchange{API: api}, nil
+	return &Exchange{Name: "Kraken", API: api}, nil
 }

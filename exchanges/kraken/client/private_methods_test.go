@@ -17,14 +17,16 @@ func init() {
 	client = New(apiKey, secretKey)
 }
 
-func TestGetFundings(t *testing.T) {
-
-}
-
 func TestGetAccountBalance(t *testing.T) {
 	balance, err := client.GetAccountBalance()
 	assert.Nil(t, err)
 	assert.NotNil(t, balance)
+}
+
+func TestQueryOrders(t *testing.T) {
+	orders, err := client.QueryOrders("ONVGMR-BOKKK-HES7ZW")
+	assert.Nil(t, err)
+	assert.NotNil(t, orders)
 }
 
 func TestGetDepositMethods(t *testing.T) {
@@ -45,4 +47,10 @@ func TestGetDepositAddresses(t *testing.T) {
 	address, err := client.GetDepositAddresses("XBT", "Bitcoin")
 	assert.Nil(t, err)
 	assert.NotNil(t, address)
+}
+
+func TestWithdraw(t *testing.T) {
+	// withdrawResponse, err := client.WithdrawFunds("ETH", "0x601486C5C19B035657aBe64d2f596317fa4939FB", 0.005)
+	// assert.Nil(t, err)
+	// assert.NotNil(t, withdrawResponse)
 }

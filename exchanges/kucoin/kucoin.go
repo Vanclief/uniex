@@ -73,12 +73,12 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		Ask: &market.OrderBookRow{
 			Price:       bestAsk,
 			Volume:      bestAskSize,
-			TotalVolume: bestAskSize,
+			AccumVolume: bestAskSize,
 		},
 		Bid: &market.OrderBookRow{
 			Price:       bestBid,
 			Volume:      bestBidSize,
-			TotalVolume: bestBidSize,
+			AccumVolume: bestBidSize,
 		},
 	}
 
@@ -110,7 +110,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 
 	// Add the Asks
 	asks := []market.OrderBookRow{}
-	askTotalVolume := float64(0)
+	askAccumVolume := float64(0)
 
 	for _, ask := range kucoinOrderBook.Asks {
 
@@ -124,12 +124,12 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 			return nil, ez.Wrap(op, err)
 		}
 
-		askTotalVolume = askTotalVolume + askVolume
+		askAccumVolume = askAccumVolume + askVolume
 
 		askRow := market.OrderBookRow{
 			Price:       askPrice,
 			Volume:      askVolume,
-			TotalVolume: askTotalVolume,
+			AccumVolume: askAccumVolume,
 		}
 
 		asks = append(asks, askRow)
@@ -138,7 +138,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 
 	// Add the bids
 	bids := []market.OrderBookRow{}
-	bidsTotalVolume := float64(0)
+	bidsAccumVolume := float64(0)
 
 	for _, bid := range kucoinOrderBook.Bids {
 
@@ -152,12 +152,12 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 			return nil, ez.Wrap(op, err)
 		}
 
-		bidsTotalVolume = bidsTotalVolume + bidVolume
+		bidsAccumVolume = bidsAccumVolume + bidVolume
 
 		bidRow := market.OrderBookRow{
 			Price:       bidPrice,
 			Volume:      bidVolume,
-			TotalVolume: bidsTotalVolume,
+			AccumVolume: bidsAccumVolume,
 		}
 
 		bids = append(bids, bidRow)

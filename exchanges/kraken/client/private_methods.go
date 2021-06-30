@@ -1,7 +1,10 @@
 package krakenclient
 
 import (
+	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/vanclief/ez"
 )
@@ -27,7 +30,27 @@ func (c *Client) GetAccountBalance() (*BalanceResponse, error) {
 	return balance, nil
 }
 
-// GetOrder - Returns an existing order
+// QueryOrders - Returns an existing order by ID
+func (c *Client) QueryOrders(txIDs ...string) (map[string]OrderInfo, error) {
+	data := url.Values{}
+	const URL = "https://api.kraken.com/0/private/QueryOrders"
+
+	switch {
+	case len(txIDs) > 50:
+		return nil, fmt.Errorf("Maximum count of requested orders is 50")
+	case len(txIDs) == 0:
+		return nil, fmt.Errorf("txIDs is required")
+	default:
+		data.Set("txid", strings.Join(txIDs, ","))
+	}
+
+	response := make(map[string]OrderInfo)
+	err := c.httpRequest("POST", URL, data, &response)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
 
 // CreateOrder - Places a new order
 
@@ -72,6 +95,25 @@ func (c *Client) GetDepositAddresses(asset, method string) ([]DepositAddress, er
 	return nil, nil
 }
 
-// WithdrawAsset - Places a withdrawal request
+// WithdrawFunds - Make a withdrawal request.
+func (c *Client) WithdrawFunds(asset, key string, amount float64) (*WithdrawFundsResponse, error) {
+	const op = "krakenclient.GetDepositAddresses"
+	const URL = "https://api.kraken.com/0/private/Withdraw"
+
+	// GetOrderBook - Gets order book for `pair` with `depth`
+	data := url.Values{
+		"asset":  {asset},
+		"key":    {key},
+		"amount": {strconv.FormatFloat(amount, 'f', -1, 64)},
+	}
+
+	response := &WithdrawFundsResponse{}
+	err := c.httpRequest("POST", URL, data, &response)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	return nil, nil
+}
 
 // CancelWithdraw - Cancels an asset withdrawal
