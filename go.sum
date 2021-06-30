@@ -262,6 +262,8 @@ github.com/vanclief/finmod v0.1.6 h1:EL8SyxheGhlhX8novlCUKzCpw9RBNHhYcyyUXPKyVwc
 github.com/vanclief/finmod v0.1.6/go.mod h1:ThewHe/7QUrLBCHWAimuITWzIiM5vOwmOqtTMIBpxh4=
 github.com/vanclief/finmod v0.1.8 h1:Td3vwIX9CcPLWd1sOl9r7P+ijsRZatVH/P18gt7xF2g=
 github.com/vanclief/finmod v0.1.8/go.mod h1:ThewHe/7QUrLBCHWAimuITWzIiM5vOwmOqtTMIBpxh4=
+github.com/vanclief/finmod v0.1.9 h1:snYWrI9snykDLkadmGyov3cDvt7K+Yx5RE5Fpm3nIA8=
+github.com/vanclief/finmod v0.1.9/go.mod h1:ThewHe/7QUrLBCHWAimuITWzIiM5vOwmOqtTMIBpxh4=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

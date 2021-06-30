@@ -56,8 +56,16 @@ func (api *API) GetTrades() ([]market.Trade, error) {
 // GetOrder - Returns an existing order
 
 // CreateOrder - Places a new order
+func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error) {
+	const op = "kraken.CreateOrder"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
 
 // CancelOrder - Cancels an existing order
+func (api *API) CancelOrder(order *market.Order) (*market.Order, error) {
+	const op = "kraken.CancelOrder"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
 
 // GetFundingAddress - Retrieves or generates a new deposit addresses for an asset
 

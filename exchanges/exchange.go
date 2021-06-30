@@ -27,7 +27,7 @@ type ExchangeAPI interface {
 	// GetFundings() ([]market.Funding, error)
 	// GetWithdraws() ([]market.Withdraw, error)
 	// GetOrders() ([]market.Order, error)
-	// CreateOrder() (market.Order, error)
-	// CancelOrder() (bool, error)
+	CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error)
+	CancelOrder(order *market.Order) (*market.Order, error)
 	// Withdraw() (market.Asset, error)
 }
