@@ -52,7 +52,7 @@ func (c *Client) QueryOrders(txIDs ...string) (map[string]OrderInfo, error) {
 	return response, nil
 }
 
-// CreateOrder - Places a new order
+// AddOrder - Places a new order
 
 // CancelOrder - Cancels an existing order
 

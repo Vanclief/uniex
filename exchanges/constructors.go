@@ -1,4 +1,4 @@
-package main
+package exchanges
 
 import (
 	"github.com/vanclief/ez"
