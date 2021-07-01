@@ -3,17 +3,18 @@ package polygon
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/vanclief/ez"
+	"github.com/vanclief/finmod/market"
 )
 
 const (
 	nanoDivider        = 1000000000
-	microDivider	   = 1000000
+	microDivider       = 1000000
 	maxResultsLimit    = 50000
 	hostPolygon        = "https://api.polygon.io"
 	timeout            = 120 * time.Second
@@ -56,16 +57,16 @@ func createHttpClient() *http.Client {
 
 type Polygon struct {
 	adjusted   bool
-	apyKey     string
+	apiKey     string
 	multiplier string
 	timespan   string
 	limit      int
 	httpClient *http.Client
 }
 
-func New(apyKey string, opts ...Option) (*Polygon, error) {
+func New(apiKey string, opts ...Option) (*Polygon, error) {
 	p := &Polygon{
-		apyKey:     apyKey,
+		apiKey:     apiKey,
 		multiplier: "1",
 		timespan:   "minute",
 		limit:      maxResultsLimit,
@@ -168,7 +169,7 @@ func (p *Polygon) getRange(symbol string, unixStart, unixEnd int64) (*RangeRespo
 	}
 
 	q := req.URL.Query()
-	q.Add("apiKey", p.apyKey)
+	q.Add("apiKey", p.apiKey)
 	q.Add("adjusted", strconv.FormatBool(p.adjusted))
 	q.Add("limit", strconv.FormatInt(int64(p.limit), 10))
 	req.URL.RawQuery = q.Encode()
@@ -202,7 +203,7 @@ func (p *Polygon) getLastQuote(symbol string) (*NBBOResponse, error) {
 	}
 
 	q := req.URL.Query()
-	q.Add("apiKey", p.apyKey)
+	q.Add("apiKey", p.apiKey)
 	req.URL.RawQuery = q.Encode()
 
 	httpResp, err := p.httpClient.Do(req)
