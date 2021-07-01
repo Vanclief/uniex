@@ -53,7 +53,11 @@ func (api *API) GetTrades() ([]market.Trade, error) {
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-// GetOrder - Returns an existing order
+// GetOrders - Returns existing orders with their status
+func (api *API) GetOrders(orders ...*market.Order) ([]market.Order, error) {
+	const op = "kraken.Orders"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
 
 // CreateOrder - Places a new order
 func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error) {
