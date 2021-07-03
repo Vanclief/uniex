@@ -61,6 +61,7 @@ type Polygon struct {
 	multiplier string
 	timespan   string
 	limit      int
+	forex      bool
 	httpClient *http.Client
 }
 
@@ -121,6 +122,10 @@ func (p *Polygon) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]
 	unixMsStart := start.UnixNano() / 1000000
 	unixMsEnd := (end.UnixNano() / 1000000) + dayMilliseconds
 	symbol := pair.Base.Symbol
+
+	if p.forex {
+		symbol = fmt.Sprintf("C:%s%s", pair.Base.Symbol, pair.Quote.Symbol)
+	}
 
 	newCandles := 1
 	for newCandles != 0 {

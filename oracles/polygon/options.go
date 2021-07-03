@@ -37,3 +37,10 @@ func WithLimit(l int) Option {
 		return nil
 	})
 }
+
+func WithForexMarket() Option {
+	return optionApplyFunc(func(polygon *Polygon) error {
+		polygon.forex = true
+		return nil
+	})
+}

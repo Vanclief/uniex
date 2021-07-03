@@ -32,7 +32,7 @@ func createDate(t *testing.T, date string) time.Time {
 	return d
 }
 
-func TestPolygon_GetHistoricalData(t *testing.T) {
+func TestPolygon_GetHistoricalDataStocks(t *testing.T) {
 	p, err := New(apiKey)
 	assert.Nil(t, err)
 
@@ -60,6 +60,52 @@ func TestPolygon_GetHistoricalData(t *testing.T) {
 				end:   createDate(t, "2021-06-25"),
 			},
 			want: 17932,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := p.GetHistoricalData(tt.args.pair, tt.args.start, tt.args.end)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetHistoricalData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Len(t, got, tt.want)
+		})
+	}
+
+}
+
+func TestPolygon_GetHistoricalDataForex(t *testing.T) {
+	p, err := New(apiKey,
+		WithForexMarket())
+	assert.Nil(t, err)
+
+	type args struct {
+		pair  *market.Pair
+		start time.Time
+		end   time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "should pass",
+			args: args{
+				pair: &market.Pair{
+					Base: &market.Asset{
+						Symbol: "EUR",
+					},
+					Quote: &market.Asset{
+						Symbol: "USD",
+					},
+				},
+				start: createDate(t, "2021-05-25"),
+				end:   createDate(t, "2021-06-25"),
+			},
+			want: 34188,
 		},
 	}
 	for _, tt := range tests {
