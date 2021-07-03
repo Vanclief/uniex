@@ -1,9 +1,8 @@
 package exchanges
 
 import (
-	"time"
-
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/oracles"
 )
 
 // Exchange - An exchange or market data API
@@ -17,10 +16,8 @@ type Exchange struct {
 // ExchangeAPI - Interface for an unified exchange API
 type ExchangeAPI interface {
 	// Public Endpoints
-	GetTicker(pair *market.Pair) (*market.Ticker, error)
-	GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error)
+	oracles.DataOracleAPI
 	GetOrderBook(pair *market.Pair) (*market.OrderBook, error)
-	// ListAssets() ([]market.Asset, error)
 
 	// Private Endpoints
 	GetBalances() (*market.BalanceSnapshot, error)
