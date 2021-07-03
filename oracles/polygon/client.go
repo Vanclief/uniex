@@ -15,6 +15,7 @@ import (
 const (
 	nanoDivider        = 1000000000
 	microDivider       = 1000000
+	miliDivider        = 1000
 	maxResultsLimit    = 50000
 	hostPolygon        = "https://api.polygon.io"
 	timeout            = 120 * time.Second
@@ -95,7 +96,7 @@ func (p *Polygon) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	return &market.Ticker{
 		// TODO: get candle
 		Candle: &market.Candle{
-			Time:   result.TimeSIP / nanoDivider,
+			Time:   result.TimeSIP / nanoDivider, // Check this is correct
 			Open:   0,
 			High:   0,
 			Low:    0,
@@ -142,7 +143,7 @@ func (p *Polygon) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]
 		var cnt = 0
 		for _, item := range resp.Results {
 			marketCandles = append(marketCandles, market.Candle{
-				Time:   item.T / microDivider,
+				Time:   item.T / miliDivider,
 				Open:   item.O,
 				High:   item.H,
 				Low:    item.L,
