@@ -4,7 +4,6 @@ import (
 
 	// 	"os"
 
-	"fmt"
 	"time"
 
 	goBinance "github.com/binance-exchange/go-binance"
@@ -53,8 +52,6 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 	op := "binance.FetchBinanceCandles"
 
 	var marketCandles []market.Candle
-
-	fmt.Println("pair", pair)
 
 	arrayOfTimestamps := createArrayOfTimestamps(start, end)
 	for _, v := range arrayOfTimestamps {
