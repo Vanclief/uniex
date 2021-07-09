@@ -78,3 +78,13 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 	}
 	return marketCandles, nil
 }
+
+func (b Client) FetchTicker(pair string) (float64, error) {
+	op := "binance.FetchTicker"
+	tr := goBinance.TickerRequest{Symbol: pair}
+	ticker, err := b.service.Ticker24(tr)
+	if err != nil {
+		return -1, ez.Wrap(op, err)
+	}
+	return ticker.LastPrice, nil
+}
