@@ -1,11 +1,13 @@
 package binanceclient
 
 import (
+	"math"
+	"time"
+
 	goBinance "github.com/binance-exchange/go-binance"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"math"
-	"time"
+	"github.com/vanclief/uniex/exchanges"
 	// 	"github.com/go-kit/kit/log"
 	// 	"github.com/go-kit/kit/log/level"
 	// 	"github.com/vanclief/ez"
@@ -24,21 +26,21 @@ func createArrayOfTimestamps(startTime, endTime time.Time) (timestamps []TimeInt
 	startUnix := startTime.Unix()
 	endUnix := endTime.Unix()
 	delta := int64(60 * 1000)
-	loops := math.Ceil(float64(endUnix - startUnix) / float64(delta))
+	loops := math.Ceil(float64(endUnix-startUnix) / float64(delta))
 	if loops == 0 {
-		return append(timestamps, TimeInterval{ startTime: startUnix, endTime: endUnix })
+		return append(timestamps, TimeInterval{startTime: startUnix, endTime: endUnix})
 	}
 
 	startIndex := startUnix
-	endIndex := int64(math.Min(float64(startUnix + delta), float64(endUnix)))
+	endIndex := int64(math.Min(float64(startUnix+delta), float64(endUnix)))
 
 	for i := 0; i < int(loops); i++ {
 		timestamps = append(timestamps, TimeInterval{
 			startTime: startIndex,
-			endTime: endIndex,
+			endTime:   endIndex,
 		})
 		startIndex += delta + 1
-		endIndex = int64(math.Min(float64(endIndex + delta + 1), float64(endUnix)))
+		endIndex = int64(math.Min(float64(endIndex+delta+1), float64(endUnix)))
 	}
 	return timestamps
 }
@@ -77,33 +79,37 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 }
 
 type CandleOrderBook struct {
-	candle *market.Candle
+	candle    *market.Candle
 	orderBook *market.OrderBook
 }
 
 func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	op := "binance.FetchTicker"
+
 	thisMinute := time.Now()
 	lastMinute := thisMinute.Add(time.Minute * -1)
+
 	candles, err := b.FetchBinanceCandles(pair, lastMinute, thisMinute)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	} else if len(candles) == 0 {
 		return nil, ez.New(op, ez.ENOTFOUND, "Candle array is empty", nil)
 	}
-	lastCandle := candles[len(candles) - 1]
 
-	ob, err := b.FetchOrderBook(pair)
+	lastCandle := candles[len(candles)-1]
+
+	options := &exchanges.GetOrderBookOptions{Limit: 5}
+
+	ob, err := b.FetchOrderBook(pair, options)
 	if err != nil {
 		return &market.Ticker{}, ez.Wrap(op, err)
 	}
 	firstAsk := ob.Asks[0] // ticker ask
 	firstBid := ob.Bids[0] // ticker bid
 
-
 	ticker := &market.Ticker{
 		Time: time.Now().Unix(),
-		Candle:    &market.Candle{
+		Candle: &market.Candle{
 			Time:   lastCandle.Time,
 			Open:   lastCandle.Open,
 			High:   lastCandle.High,
@@ -125,11 +131,18 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	return ticker, nil
 }
 
-func (b Client) FetchOrderBook(pair string) (goBinance.OrderBook, error) {
+func (b Client) FetchOrderBook(pair string, options *exchanges.GetOrderBookOptions) (goBinance.OrderBook, error) {
 	op := "binance.FetchOrderBook"
+
+	limit := 100 // The default limit from the API
+
+	if options.Limit != 0 {
+		limit = options.Limit
+	}
+
 	obr := goBinance.OrderBookRequest{
 		Symbol: pair,
-		Limit:  5000,
+		Limit:  limit,
 	}
 	orderBook, err := b.service.OrderBook(obr)
 	if err != nil {

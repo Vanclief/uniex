@@ -5,6 +5,7 @@ import (
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/exchanges"
 )
 
 func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
@@ -58,13 +59,17 @@ func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]ma
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
+func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookOptions) (*market.OrderBook, error) {
 	const op = "kraken.GetOrderBook"
-	const maxDepth = 500
 
 	symbol := pair.Base.Symbol + pair.Quote.Symbol
 
-	obMap, err := api.Client.GetOrderBook(symbol, maxDepth)
+	limit := 100
+	if options.Limit != 0 {
+		limit = options.Limit
+	}
+
+	obMap, err := api.Client.GetOrderBook(symbol, int64(limit))
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/exchanges"
 )
 
 func init() {
@@ -34,8 +35,9 @@ func TestGetOrderBook(t *testing.T) {
 	USD, _ := market.NewAsset("USD", "US Dollar")
 
 	ETHUSD, _ := market.NewPair(ETH, USD)
+	options := &exchanges.GetOrderBookOptions{Limit: 100}
 
-	orderBook, err := krakenAPI.GetOrderBook(ETHUSD)
+	orderBook, err := krakenAPI.GetOrderBook(ETHUSD, options)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }

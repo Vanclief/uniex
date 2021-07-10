@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/exchanges"
 )
 
 var kucoinAPI *API
@@ -37,8 +38,9 @@ func TestGetOrderBook(t *testing.T) {
 	USDT, _ := market.NewAsset("USDT", "US Tether")
 
 	ETHUSDT, _ := market.NewPair(ETH, USDT)
+	options := &exchanges.GetOrderBookOptions{Limit: 100}
 
-	orderBook, err := kucoinAPI.GetOrderBook(ETHUSDT)
+	orderBook, err := kucoinAPI.GetOrderBook(ETHUSDT, options)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }

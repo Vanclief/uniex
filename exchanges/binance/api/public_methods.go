@@ -6,6 +6,7 @@ import (
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/exchanges"
 )
 
 func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
@@ -31,10 +32,10 @@ func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]ma
 	return candles, nil
 }
 
-func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
+func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookOptions) (*market.OrderBook, error) {
 	const op = "binance.GetOrderBook"
 	pairString := strings.ToUpper(pair.Base.Symbol + pair.Quote.Symbol)
-	orderBook, err := api.Client.FetchOrderBook(pairString)
+	orderBook, err := api.Client.FetchOrderBook(pairString, options)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}

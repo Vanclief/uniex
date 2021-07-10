@@ -17,7 +17,7 @@ type Exchange struct {
 type ExchangeAPI interface {
 	// Public Endpoints
 	oracles.DataOracleAPI
-	GetOrderBook(pair *market.Pair) (*market.OrderBook, error)
+	GetOrderBook(pair *market.Pair, options *GetOrderBookOptions) (*market.OrderBook, error)
 
 	// Private Endpoints
 	GetBalances() (*market.BalanceSnapshot, error)
@@ -29,4 +29,9 @@ type ExchangeAPI interface {
 	// GetFundings() ([]market.Funding, error)
 	// GetWithdraws() ([]market.Withdraw, error)
 	// Withdraw() (market.Asset, error)
+}
+
+// GetOrderBookOptions
+type GetOrderBookOptions struct {
+	Limit int // Maximum number of asks/bids
 }
