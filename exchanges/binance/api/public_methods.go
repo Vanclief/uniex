@@ -39,7 +39,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 		return nil, ez.Wrap(op, err)
 	}
 	parsedOrderBook := &market.OrderBook{
-		Time: float64(time.Now().Unix()),
+		Time: time.Now().Unix(),
 	}
 	accumAskVolume := 0.0
 	accumBidVolume := 0.0
