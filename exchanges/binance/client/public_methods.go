@@ -1,14 +1,11 @@
 package binanceclient
 
 import (
-
-	// 	"os"
-
-	"time"
-
 	goBinance "github.com/binance-exchange/go-binance"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
+	"math"
+	"time"
 	// 	"github.com/go-kit/kit/log"
 	// 	"github.com/go-kit/kit/log/level"
 	// 	"github.com/vanclief/ez"
@@ -24,25 +21,25 @@ type TimeInterval struct {
 // createArrayOfTimestamps takes the start and end time as time.Time and calculates how many Binance API calls are
 // necessary to cover the time period in minutes, every API call interval is stored in an Interval struct
 func createArrayOfTimestamps(startTime, endTime time.Time) (timestamps []TimeInterval) {
-
-	thousands := int((endTime.Unix() - startTime.Unix()) / 60000)
-	cents := int((endTime.Unix()-startTime.Unix())/60) % 1000
-
-	for i := 0; i < thousands; i++ {
-		factor := 1000 * i
-		temp := TimeInterval{
-			startTime: startTime.Add(time.Duration(factor) * time.Minute).Unix(),
-			endTime:   startTime.Add(time.Duration(999+factor) * time.Minute).Unix(),
-		}
-		timestamps = append(timestamps, temp)
+	startUnix := startTime.Unix()
+	endUnix := endTime.Unix()
+	delta := int64(60 * 1000)
+	loops := math.Ceil(float64(endUnix - startUnix) / float64(delta))
+	if loops == 0 {
+		return append(timestamps, TimeInterval{ startTime: startUnix, endTime: endUnix })
 	}
 
-	timestamps = append(timestamps,
-		TimeInterval{
-			startTime: startTime.Add(time.Duration(1000*thousands) * time.Minute).Unix(),
-			endTime:   startTime.Add(time.Duration(1000*thousands+cents-1) * time.Minute).Unix(),
-		})
+	startIndex := startUnix
+	endIndex := int64(math.Min(float64(startUnix + delta), float64(endUnix)))
 
+	for i := 0; i < int(loops); i++ {
+		timestamps = append(timestamps, TimeInterval{
+			startTime: startIndex,
+			endTime: endIndex,
+		})
+		startIndex += delta + 1
+		endIndex = int64(math.Min(float64(endIndex + delta + 1), float64(endUnix)))
+	}
 	return timestamps
 }
 
@@ -63,7 +60,7 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 			Limit:     1000,
 		})
 		if err != nil {
-			ez.Wrap(op, err)
+			return nil, ez.Wrap(op, err)
 		}
 		for _, vv := range kl {
 			marketCandles = append(marketCandles, market.Candle{
@@ -79,12 +76,64 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 	return marketCandles, nil
 }
 
-func (b Client) FetchTicker(pair string) (float64, error) {
+type CandleOrderBook struct {
+	candle *market.Candle
+	orderBook *market.OrderBook
+}
+
+func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	op := "binance.FetchTicker"
-	tr := goBinance.TickerRequest{Symbol: pair}
-	ticker, err := b.service.Ticker24(tr)
+	thisMinute := time.Now()
+	lastMinute := thisMinute.Add(time.Minute * -1)
+	candles, err := b.FetchBinanceCandles(pair, lastMinute, thisMinute)
 	if err != nil {
-		return -1, ez.Wrap(op, err)
+		return nil, ez.Wrap(op, err)
+	} else if len(candles) == 0 {
+		return nil, ez.New(op, ez.ENOTFOUND, "Candle array is empty", nil)
 	}
-	return ticker.LastPrice, nil
+	lastCandle := candles[len(candles) - 1]
+
+	ob, err := b.FetchOrderBook(pair)
+	if err != nil {
+		return &market.Ticker{}, ez.Wrap(op, err)
+	}
+	firstAsk := ob.Asks[0] // ticker ask
+	firstBid := ob.Bids[0] // ticker bid
+
+
+	ticker := &market.Ticker{
+		Time: time.Now().Unix(),
+		Candle:    &market.Candle{
+			Time:   lastCandle.Time,
+			Open:   lastCandle.Open,
+			High:   lastCandle.High,
+			Low:    lastCandle.Low,
+			Close:  lastCandle.Close,
+			Volume: lastCandle.Volume,
+		},
+		Ask: &market.OrderBookRow{
+			Price:       firstAsk.Price,
+			Volume:      firstAsk.Quantity,
+			AccumVolume: firstAsk.Quantity,
+		},
+		Bid: &market.OrderBookRow{
+			Price:       firstBid.Price,
+			Volume:      firstBid.Quantity,
+			AccumVolume: firstBid.Quantity,
+		},
+	}
+	return ticker, nil
+}
+
+func (b Client) FetchOrderBook(pair string) (goBinance.OrderBook, error) {
+	op := "binance.FetchOrderBook"
+	obr := goBinance.OrderBookRequest{
+		Symbol: pair,
+		Limit:  5000,
+	}
+	orderBook, err := b.service.OrderBook(obr)
+	if err != nil {
+		return goBinance.OrderBook{}, ez.Wrap(op, err)
+	}
+	return *orderBook, nil
 }
