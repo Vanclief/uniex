@@ -69,7 +69,7 @@ func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	orderBook := &market.OrderBook{}
+	orderBook := &market.OrderBook{Time: time.Now().Unix()}
 
 	// We only want the first item
 	for _, value := range obMap {
