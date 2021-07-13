@@ -80,7 +80,7 @@ func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookO
 	for _, value := range obMap {
 
 		// Add the Asks
-		asks := []market.OrderBookRow{}
+		var asks []market.OrderBookRow
 		askAccumVolume := float64(0)
 
 		for _, ask := range value.Asks {
@@ -98,7 +98,7 @@ func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookO
 		orderBook.Asks = asks
 
 		// Add the bids
-		bids := []market.OrderBookRow{}
+		var bids []market.OrderBookRow
 		bidsAccumVolume := float64(0)
 
 		for _, bid := range value.Bids {

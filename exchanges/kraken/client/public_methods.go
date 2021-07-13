@@ -9,7 +9,7 @@ import (
 	"github.com/vanclief/ez"
 )
 
-// GetAssetPairs returns an array with all the tradable AssetPairs
+// GetAssetPairs returns an array with all the tradeable AssetPairs
 func (c *Client) GetAssetPairs() (map[string]AssetPair, error) {
 	const op = "krakenclient.GetAssetPairs"
 	const URL = "https://api.kraken.com/0/public/AssetPairs"

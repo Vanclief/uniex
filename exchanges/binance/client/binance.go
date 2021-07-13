@@ -19,7 +19,7 @@ import (
 	// 	"github.com/vanclief/go-trading-engine/utils"
 )
 
-// Client- Binance struct that contains the client for API calls and a context cancellable function
+// Client - Binance struct that contains the client for API calls and a context cancellable function
 type Client struct {
 	service   goBinance.Binance
 	ctxCancel context.CancelFunc
