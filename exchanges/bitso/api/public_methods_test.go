@@ -1,14 +1,22 @@
 package api
 
 import (
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"testing"
 )
 
+var bitsoAPI *API
+
+func init() {
+	viper.AutomaticEnv()
+	apiKey := viper.GetString("BITSO_API_KEY")
+
+	bitsoAPI, _ = New(apiKey)
+}
+
 func TestGetTicker(t *testing.T) {
-	bitsoClient, err := New("")
-	assert.Nil(t, err)
 	pair := &market.Pair{
 		Base: &market.Asset{
 			Symbol: "btc",
@@ -19,14 +27,12 @@ func TestGetTicker(t *testing.T) {
 			Name:   "Mexican Peso",
 		},
 	}
-	ticker, err := bitsoClient.GetTicker(pair)
+	ticker, err := bitsoAPI.GetTicker(pair)
 	assert.Nil(t, err)
 	assert.NotNil(t, ticker)
 }
 
 func TestAPI_GetOrderBook(t *testing.T) {
-	bitsoClient, err := New("")
-	assert.Nil(t, err)
 	pair := &market.Pair{
 		Base: &market.Asset{
 			Symbol: "btc",
@@ -37,7 +43,7 @@ func TestAPI_GetOrderBook(t *testing.T) {
 			Name:   "Mexican Peso",
 		},
 	}
-	ob, err := bitsoClient.GetOrderBook(pair)
+	ob, err := bitsoAPI.GetOrderBook(pair)
 	assert.Nil(t, err)
 	assert.NotNil(t, ob)
 }
