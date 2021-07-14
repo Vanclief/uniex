@@ -6,26 +6,24 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/vanclief/ez"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Client struct {
-	APIKey    string
-	APISecret string
-	http      *http.Client
+	APIKey string
+	http   *http.Client
 }
 
-func New(APIKey, APISecret string) *Client {
+func New(APIKey string) *Client {
 	return &Client{
-		APIKey:    APIKey,
-		APISecret: APISecret,
-		http:      &http.Client{},
+		APIKey: APIKey,
+		http:   &http.Client{},
 	}
 }
 
@@ -47,7 +45,7 @@ func (c *Client) generateSignature(method, URL string, data url.Values) (string,
 	}
 
 	hashData := sha.Sum(nil)
-	s, err := base64.StdEncoding.DecodeString(c.APISecret)
+	s, err := base64.StdEncoding.DecodeString("")
 	if err != nil {
 		return "", ez.Wrap(op, err)
 	}
@@ -70,9 +68,9 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 		data = url.Values{}
 	}
 
-	data.Set("nonce", fmt.Sprintf("%d", time.Now().UnixNano()))
+	nonce := time.Now().UnixNano()
 
-	request, err := http.NewRequest(method, URL, strings.NewReader(data.Encode()))
+	request, err := http.NewRequest(method, URL+"?"+data.Encode(), nil)
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
@@ -81,7 +79,8 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
-	request.Header.Add("Authorization", "Bitso "+c.APIKey+":"+data.Get("nonce")+":"+signature)
+	authSig := "Bitso " + c.APIKey + ":" + strconv.FormatInt(nonce, 10) + ":" + signature
+	request.Header.Add("Authorization", authSig)
 
 	response, err := c.http.Do(request)
 	if err != nil {
@@ -90,7 +89,7 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 
 	if response.StatusCode != 200 {
 		errorType := ez.HTTPStatusToError(response.StatusCode)
-		return ez.New(op, errorType, "Error during Kraken API request", nil)
+		return ez.New(op, errorType, "Error during Bitso API request", nil)
 	}
 
 	responseBody, err := ioutil.ReadAll(response.Body)
@@ -106,11 +105,6 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 	err = json.Unmarshal(responseBody, bitsoResponse)
 	if err != nil {
 		return ez.Wrap(op, err)
-	}
-
-	if bitsoResponse.Error.Message != "" {
-		errMsg := fmt.Sprintf("Bitso request returned an error: %s", bitsoResponse.Error.Message)
-		return ez.New(op, ez.EINTERNAL, errMsg, nil)
 	}
 
 	defer response.Body.Close()

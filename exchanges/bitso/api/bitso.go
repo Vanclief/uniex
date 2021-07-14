@@ -8,7 +8,7 @@ type API struct {
 	Client *bitsoClient.Client
 }
 
-func New(apiKey, secretKey string) (*API, error) {
-	client := bitsoClient.New(apiKey, secretKey)
+func New(apiKey string) (*API, error) {
+	client := bitsoClient.New(apiKey)
 	return &API{Client: client}, nil
 }
