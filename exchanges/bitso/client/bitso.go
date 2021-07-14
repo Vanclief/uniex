@@ -17,12 +17,14 @@ import (
 
 type Client struct {
 	APIKey string
+	APISecret  string
 	http   *http.Client
 }
 
-func New(APIKey string) *Client {
+func New(APIKey, APISecret string) *Client {
 	return &Client{
 		APIKey: APIKey,
+		APISecret: APISecret,
 		http:   &http.Client{},
 	}
 }
@@ -45,7 +47,7 @@ func (c *Client) generateSignature(method, URL string, data url.Values) (string,
 	}
 
 	hashData := sha.Sum(nil)
-	s, err := base64.StdEncoding.DecodeString("")
+	s, err := base64.StdEncoding.DecodeString(c.APISecret)
 	if err != nil {
 		return "", ez.Wrap(op, err)
 	}

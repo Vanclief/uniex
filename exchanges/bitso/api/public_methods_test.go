@@ -12,8 +12,9 @@ var bitsoAPI *API
 func init() {
 	viper.AutomaticEnv()
 	apiKey := viper.GetString("BITSO_API_KEY")
+	apiSecret  := viper.GetString("BITSO_SECRET")
 
-	bitsoAPI, _ = New(apiKey)
+	bitsoAPI, _ = New(apiKey, apiSecret)
 }
 
 func TestGetTicker(t *testing.T) {
