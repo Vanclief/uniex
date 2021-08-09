@@ -21,10 +21,17 @@ type ExchangeAPI interface {
 
 	// Private Endpoints
 	GetBalances() (*market.BalanceSnapshot, error)
-	GetOrders(orders ...*market.Order) ([]market.Order, error)
+
+	// Orders
+	GetOrders(request *GetOrdersRequest) ([]market.Order, error)
 	CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error)
 	CancelOrder(order *market.Order) (*market.Order, error)
-	// GetPositions() ([]market.Position, error)
+
+	// Trades
+	GetTrades(request *GetTradesRequest) ([]market.Trade, error)
+
+	// Positions
+	GetPositions(request *GetPositionsRequest) ([]market.Position, error)
 	// GetTrades() ([]market.Trade, error)
 	// GetFundings() ([]market.Funding, error)
 	// GetWithdraws() ([]market.Withdraw, error)
