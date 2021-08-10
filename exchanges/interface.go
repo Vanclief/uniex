@@ -37,8 +37,3 @@ type ExchangeAPI interface {
 	// GetWithdraws() ([]market.Withdraw, error)
 	// Withdraw() (market.Asset, error)
 }
-
-// GetOrderBookOptions
-type GetOrderBookOptions struct {
-	Limit int // Maximum number of asks/bids
-}
