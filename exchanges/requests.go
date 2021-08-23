@@ -1,6 +1,5 @@
 package exchanges
 
-// GetOrderBookOptions
 type GetOrderBookOptions struct {
 	Limit int // Maximum number of asks/bids
 }

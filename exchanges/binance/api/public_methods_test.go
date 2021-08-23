@@ -1,13 +1,12 @@
 package binance
 
 import (
-	"testing"
-	"time"
-
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/exchanges"
+	"testing"
+	"time"
 )
 
 var binanceAPI *API

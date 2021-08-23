@@ -16,19 +16,19 @@ import (
 // TimeInterval contains the UNIX timestamps to make a Binance API call with startTime and endTime, the maximum
 // difference between endTime and startTime is 1000 minutes or 16 hours, 40 minutes
 type TimeInterval struct {
-	startTime int64
-	endTime   int64
+	StartTime int64
+	EndTime   int64
 }
 
-// createArrayOfTimestamps takes the start and end time as time.Time and calculates how many Binance API calls are
+// CreateArrayOfTimestamps takes the start and end time as time.Time and calculates how many Binance API calls are
 // necessary to cover the time period in minutes, every API call interval is stored in an Interval struct
-func createArrayOfTimestamps(startTime, endTime time.Time) (timestamps []TimeInterval) {
+func CreateArrayOfTimestamps(startTime, endTime time.Time) (timestamps []TimeInterval) {
 	startUnix := startTime.Unix()
 	endUnix := endTime.Unix()
 	delta := int64(60 * 1000)
 	loops := math.Ceil(float64(endUnix-startUnix) / float64(delta))
 	if loops == 0 {
-		return append(timestamps, TimeInterval{startTime: startUnix, endTime: endUnix})
+		return append(timestamps, TimeInterval{StartTime: startUnix, EndTime: endUnix})
 	}
 
 	startIndex := startUnix
@@ -36,11 +36,13 @@ func createArrayOfTimestamps(startTime, endTime time.Time) (timestamps []TimeInt
 
 	for i := 0; i < int(loops); i++ {
 		timestamps = append(timestamps, TimeInterval{
-			startTime: startIndex,
-			endTime:   endIndex,
+			StartTime: startIndex,
+			EndTime:   endIndex,
 		})
-		startIndex += delta + 1
-		endIndex = int64(math.Min(float64(endIndex+delta+1), float64(endUnix)))
+		startIndex += delta
+		endIndex = int64(math.Min(float64(endIndex+delta), float64(endUnix)))
+		//startIndex += delta + 1
+		//endIndex = int64(math.Min(float64(endIndex+delta+1), float64(endUnix)))
 	}
 	return timestamps
 }
@@ -52,13 +54,13 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market
 
 	var marketCandles []market.Candle
 
-	arrayOfTimestamps := createArrayOfTimestamps(start, end)
+	arrayOfTimestamps := CreateArrayOfTimestamps(start, end)
 	for _, v := range arrayOfTimestamps {
 		kl, err := b.service.Klines(goBinance.KlinesRequest{
 			Symbol:    pair,
 			Interval:  goBinance.Minute,
-			StartTime: v.startTime * 1000,
-			EndTime:   v.endTime * 1000,
+			StartTime: v.StartTime * 1000,
+			EndTime:   v.EndTime * 1000,
 			Limit:     1000,
 		})
 		if err != nil {
