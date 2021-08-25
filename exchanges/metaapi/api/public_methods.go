@@ -15,7 +15,7 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 
 func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error) {
 	const op = "MetaAPI.GetHistoricalData"
-	pairString := strings.ToUpper(pair.Base.Symbol + pair.Quote.Symbol)
+	pairString := strings.ToUpper(pair.Base.Symbol)
 
 	candles, err := api.Client.GetOHLCData(pairString, "1m", start, end)
 	if err != nil {

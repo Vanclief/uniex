@@ -25,8 +25,8 @@ func TestAPI_GetHistoricalData(t *testing.T) {
 			Name:   "Dow Jones CFD",
 		},
 		Quote: &market.Asset{
-			Symbol: "",
-			Name:   "",
+			Symbol: "USD",
+			Name:   "US Dollar",
 		},
 	}
 
