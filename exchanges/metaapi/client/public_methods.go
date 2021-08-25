@@ -25,7 +25,7 @@ func (c *Client) GetHealth() error {
 
 func (c *Client) GetOHLCData(symbol, timeframe string, startTime, endTime time.Time) ([]market.Candle, error) {
 	const op = "MetaAPI.Client.GetOHLCData"
-	URL := fmt.Sprintf(`https://mt-market-data-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/historical-market-data/symbols/%s/timeframes/%s/candles`, c.AccountID, symbol, timeframe)
+	URL := fmt.Sprintf(`https://mt-market-data-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/historical-market-data/symbols/%s/timeframes/%s/candles`, c.AccountID, url.QueryEscape(symbol), timeframe)
 
 	var marketCandles []market.Candle
 
