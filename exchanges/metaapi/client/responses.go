@@ -17,3 +17,9 @@ type MetaTraderCandle struct {
 type MetaAPIResponse struct {
 	Payload interface{}
 }
+
+type MetaAPIError struct {
+	ID      int    `json:"id"`
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}

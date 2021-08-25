@@ -180,7 +180,6 @@ func (p *Polygon) getRange(symbol string, unixStart, unixEnd int64) (*RangeRespo
 	q.Add("limit", strconv.FormatInt(int64(p.limit), 10))
 	req.URL.RawQuery = q.Encode()
 
-	//fmt.Println("url", req.URL.String())
 	httpResp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, ez.Wrap(op, err)

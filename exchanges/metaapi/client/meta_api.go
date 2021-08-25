@@ -41,22 +41,29 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 		return ez.Wrap(op, err)
 	}
 
-	if response.StatusCode != 200 {
-		errorType := ez.HTTPStatusToError(response.StatusCode)
-		return ez.New(op, errorType, "Error during MetaAPI request", nil)
-	}
-
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
 
-	swaggerResponse := &MetaAPIResponse{}
-	if responseType != nil {
-		swaggerResponse.Payload = responseType
+	if response.StatusCode != 200 {
+		errorType := ez.HTTPStatusToError(response.StatusCode)
+
+		apiError := &MetaAPIError{}
+		err = json.Unmarshal(responseBody, apiError)
+		if err != nil {
+			return ez.Wrap(op, err)
+		}
+
+		return ez.New(op, errorType, apiError.Message, nil)
 	}
 
-	err = json.Unmarshal(responseBody, swaggerResponse.Payload)
+	apiResponse := &MetaAPIResponse{}
+	if responseType != nil {
+		apiResponse.Payload = responseType
+	}
+
+	err = json.Unmarshal(responseBody, apiResponse.Payload)
 	if err != nil {
 		return ez.Wrap(op, err)
 	}

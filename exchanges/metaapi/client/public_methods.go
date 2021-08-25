@@ -36,12 +36,13 @@ func (c *Client) GetOHLCData(symbol, timeframe string, startTime, endTime time.T
 			"startTime": {tm.String()},
 			"limit":     {fmt.Sprint(1000)},
 		}
-		fmt.Println(v)
+
 		response := &[]MetaTraderCandle{}
 		err := c.httpRequest("GET", URL, data, &response)
 		if err != nil {
 			return nil, ez.Wrap(op, err)
 		}
+
 		for _, vv := range *response {
 			parsedTime, err := time.Parse(time.RFC3339, vv.Time)
 			if err != nil {
