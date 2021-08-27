@@ -12,9 +12,9 @@ type DataOracle struct {
 	API  DataOracleAPI
 }
 
-// DataOracleAPI - Interface for an unified market data oracle API
+// DataOracleAPI - Interface for a unified market data oracle API
 type DataOracleAPI interface {
 	GetTicker(pair *market.Pair) (*market.Ticker, error)
-	GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error)
+	GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error)
 	// ListAssets() ([]market.Asset, error)
 }

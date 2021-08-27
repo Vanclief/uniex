@@ -15,12 +15,12 @@ import (
 
 // FetchBinanceCandles takes the start and end dates, and the crypto pair as strings, and returns the Binance Candle
 // data for every minute between start and end for a crypto pair
-func (b Client) FetchBinanceCandles(pair string, start, end time.Time) ([]market.Candle, error) {
+func (b Client) FetchBinanceCandles(pair string, start, end time.Time, interval int) ([]market.Candle, error) {
 	op := "binance.FetchBinanceCandles"
 
 	var marketCandles []market.Candle
 
-	arrayOfTimestamps := utils.CreateArrayOfTimestamps(start, end)
+	arrayOfTimestamps := utils.CreateArrayOfTimestamps(start, end, interval)
 	for _, v := range arrayOfTimestamps {
 		kl, err := b.service.Klines(goBinance.KlinesRequest{
 			Symbol:    pair,
@@ -57,7 +57,7 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	thisMinute := time.Now()
 	lastMinute := thisMinute.Add(time.Minute * -1)
 
-	candles, err := b.FetchBinanceCandles(pair, lastMinute, thisMinute)
+	candles, err := b.FetchBinanceCandles(pair, lastMinute, thisMinute, 1)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	} else if len(candles) == 0 {

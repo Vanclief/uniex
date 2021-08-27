@@ -116,7 +116,7 @@ func (p *Polygon) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	}, nil
 }
 
-func (p *Polygon) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error) {
+func (p *Polygon) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	op := "polygon.GetHistoricalData"
 	var marketCandles []market.Candle
 

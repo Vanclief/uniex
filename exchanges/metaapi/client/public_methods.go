@@ -23,13 +23,18 @@ func (c *Client) GetHealth() error {
 	return nil
 }
 
-func (c *Client) GetOHLCData(symbol, timeframe string, startTime, endTime time.Time) ([]market.Candle, error) {
+func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interval int) ([]market.Candle, error) {
 	const op = "MetaAPI.Client.GetOHLCData"
+	if interval <= 0 {
+		return nil, ez.New(op, ez.EINVALID, "Interval must be a positive number", nil)
+	}
+	timeframe := fmt.Sprintf(`%sm`, interval)
+
 	URL := fmt.Sprintf(`https://mt-market-data-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/historical-market-data/symbols/%s/timeframes/%s/candles`, c.AccountID, url.QueryEscape(symbol), timeframe)
 
 	var marketCandles []market.Candle
 
-	arrayOfTimestamps := utils.CreateArrayOfTimestamps(startTime, endTime)
+	arrayOfTimestamps := utils.CreateArrayOfTimestamps(startTime, endTime, interval)
 	for _, v := range arrayOfTimestamps {
 		tm := time.Unix(v.EndTime, 0)
 		data := url.Values{

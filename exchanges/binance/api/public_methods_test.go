@@ -54,7 +54,7 @@ func TestGetHistoricalData(t *testing.T) {
 
 	ETHUSDT, _ := market.NewPair(ETH, USDT)
 
-	candles, err := binanceAPI.GetHistoricalData(ETHUSDT, start, end)
+	candles, err := binanceAPI.GetHistoricalData(ETHUSDT, start, end, 1)
 	assert.Nil(t, err)
 	assert.NotNil(t, candles)
 }

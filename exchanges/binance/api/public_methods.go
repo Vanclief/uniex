@@ -19,12 +19,12 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	return ticker, nil
 }
 
-func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error) {
+func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	const op = "binance.GetHistoricalData"
 
 	pairString := strings.ToUpper(pair.Base.Symbol + pair.Quote.Symbol)
 
-	candles, err := api.Client.FetchBinanceCandles(pairString, start, end)
+	candles, err := api.Client.FetchBinanceCandles(pairString, start, end, interval)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}

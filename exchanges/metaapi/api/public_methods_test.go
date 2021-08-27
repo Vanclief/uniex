@@ -33,7 +33,7 @@ func TestAPI_GetHistoricalData(t *testing.T) {
 	start := time.Now().Add(-100 * time.Hour)
 	end := time.Now()
 
-	historicalData, err := metaAPI.GetHistoricalData(pair, start, end)
+	historicalData, err := metaAPI.GetHistoricalData(pair, start, end, 1)
 	assert.Nil(t, err)
 	assert.NotNil(t, historicalData)
 }
