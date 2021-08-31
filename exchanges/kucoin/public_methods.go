@@ -69,7 +69,7 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	return ticker, nil
 }
 
-func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time) ([]market.Candle, error) {
+func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	const op = "kucoin.GetHistoricalData"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
