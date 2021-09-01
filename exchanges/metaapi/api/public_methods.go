@@ -1,7 +1,6 @@
 package api
 
 import (
-	"strings"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -15,8 +14,7 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 
 func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	const op = "MetaAPI.GetHistoricalData"
-	pairString := strings.ToUpper(pair.Base.Symbol)
-
+	pairString := pair.Base.Symbol
 
 	candles, err := api.Client.GetOHLCData(pairString, start, end, interval)
 	if err != nil {

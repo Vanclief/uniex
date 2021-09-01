@@ -21,8 +21,8 @@ func init() {
 func TestAPI_GetHistoricalData(t *testing.T) {
 	pair := &market.Pair{
 		Base: &market.Asset{
-			Symbol: "#US30",
-			Name:   "Dow Jones CFD",
+			Symbol: "#Germany30",
+			Name:   "Germany DAX",
 		},
 		Quote: &market.Asset{
 			Symbol: "USD",
