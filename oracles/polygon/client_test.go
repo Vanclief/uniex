@@ -1,10 +1,12 @@
 package polygon
 
 import (
+	"os"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/finmod/utils"
-	"os"
+
 	//"reflect"
 	"testing"
 	"time"
@@ -64,7 +66,7 @@ func TestPolygon_GetHistoricalDataStocks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := p.GetHistoricalData(tt.args.pair, tt.args.start, tt.args.end)
+			got, err := p.GetHistoricalData(tt.args.pair, tt.args.start, tt.args.end, 1)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetHistoricalData() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -110,7 +112,7 @@ func TestPolygon_GetHistoricalDataForex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := p.GetHistoricalData(tt.args.pair, tt.args.start, tt.args.end)
+			got, err := p.GetHistoricalData(tt.args.pair, tt.args.start, tt.args.end, 1)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetHistoricalData() error = %v, wantErr %v", err, tt.wantErr)
 				return

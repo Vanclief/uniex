@@ -28,7 +28,8 @@ func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interv
 	if interval <= 0 {
 		return nil, ez.New(op, ez.EINVALID, "Interval must be a positive number", nil)
 	}
-	timeframe := fmt.Sprintf(`%sm`, interval)
+
+	timeframe := fmt.Sprintf(`%dm`, interval)
 
 	URL := fmt.Sprintf(`https://mt-market-data-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/historical-market-data/symbols/%s/timeframes/%s/candles`, c.AccountID, url.QueryEscape(symbol), timeframe)
 
