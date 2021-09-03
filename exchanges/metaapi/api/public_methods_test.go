@@ -18,6 +18,24 @@ func init() {
 	metaAPI, _ = New(accountID, token)
 }
 
+func TestGetCurrentCandle(t *testing.T) {
+
+	pair := &market.Pair{
+		Base: &market.Asset{
+			Symbol: "#US30",
+			Name:   "Dow Jones",
+		},
+		Quote: &market.Asset{
+			Symbol: "USD",
+			Name:   "US Dollar",
+		},
+	}
+
+	candle, err := metaAPI.GetCurrentCandle(pair, 2)
+	assert.Nil(t, err)
+	assert.NotNil(t, candle)
+}
+
 func TestAPI_GetHistoricalData(t *testing.T) {
 	pair := &market.Pair{
 		Base: &market.Asset{

@@ -19,6 +19,11 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	return ticker, nil
 }
 
+func (api *API) GetCurrentCandle(pair *market.Pair, timeframe int) (*market.Candle, error) {
+	const op = "binance.GetCurrentCandle"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
 func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	const op = "binance.GetHistoricalData"
 

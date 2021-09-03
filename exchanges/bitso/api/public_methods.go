@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vanclief/ez"
+	"github.com/vanclief/finmod/market"
 )
 
 func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
@@ -65,6 +66,11 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		},
 	}
 	return ticker, nil
+}
+
+func (api *API) GetCurrentCandle(pair *market.Pair, timeframe int) (*market.Candle, error) {
+	const op = "bitso.GetCurrentCandle"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
 func (api *API) GetOrderBook(pair *market.Pair) (*market.OrderBook, error) {

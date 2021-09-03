@@ -23,6 +23,40 @@ func (c *Client) GetHealth() error {
 	return nil
 }
 
+func (c *Client) ReadCandle(symbol string, interval int) (*market.Candle, error) {
+	const op = "MetaAPI.Client.ReadCandle"
+
+	if interval <= 0 {
+		return nil, ez.New(op, ez.EINVALID, "Interval must be a positive number", nil)
+	}
+
+	timeframe := fmt.Sprintf(`%dm`, interval)
+
+	URL := fmt.Sprintf(`https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/symbols/%s/current-candles/%s`, c.AccountID, url.QueryEscape(symbol), timeframe)
+
+	response := &MetaTraderCandle{}
+	err := c.httpRequest("GET", URL, nil, &response)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	parsedTime, err := time.Parse(time.RFC3339, response.Time)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	candle := &market.Candle{
+		Time:   parsedTime.Unix(),
+		Open:   response.Open,
+		High:   response.High,
+		Low:    response.Low,
+		Close:  response.Close,
+		Volume: response.Volume,
+	}
+
+	return candle, nil
+}
+
 func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interval int) ([]market.Candle, error) {
 	const op = "MetaAPI.Client.GetOHLCData"
 	if interval <= 0 {

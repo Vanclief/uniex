@@ -116,6 +116,11 @@ func (p *Polygon) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	}, nil
 }
 
+func (p *Polygon) GetCurrentCandle(pair *market.Pair, timeframe int) (*market.Candle, error) {
+	const op = "Polygon.GetCurrentCandle"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
 func (p *Polygon) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	op := "polygon.GetHistoricalData"
 	var marketCandles []market.Candle
