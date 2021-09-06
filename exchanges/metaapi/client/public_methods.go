@@ -69,7 +69,7 @@ func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interv
 
 	var marketCandles []market.Candle
 
-	limitCandles := utils.CalculateLimit(startTime, endTime, interval)
+	limitCandles := utils.CalculateLimit(startTime, endTime, interval, 1000)
 
 	arrayOfTimestamps := utils.CreateArrayOfTimestamps(startTime, endTime, interval)
 	for _, v := range arrayOfTimestamps {
