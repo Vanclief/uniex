@@ -69,12 +69,14 @@ func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interv
 
 	var marketCandles []market.Candle
 
+	limitCandles := utils.CalculateLimit(startTime, endTime, interval)
+
 	arrayOfTimestamps := utils.CreateArrayOfTimestamps(startTime, endTime, interval)
 	for _, v := range arrayOfTimestamps {
 		tm := time.Unix(v.EndTime, 0)
 		data := url.Values{
 			"startTime": {tm.String()},
-			"limit":     {fmt.Sprint(1000)},
+			"limit":     {fmt.Sprint(limitCandles)},
 		}
 
 		response := &[]MetaTraderCandle{}
