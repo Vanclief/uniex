@@ -16,7 +16,7 @@ func init() {
 }
 
 func TestGetBalances(t *testing.T) {
-	balances, err := binanceAPI.GetBalances()
+	balances, err := binanceAPI.GetBalance()
 	assert.Nil(t, err)
 	assert.NotNil(t, balances)
 }

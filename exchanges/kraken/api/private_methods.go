@@ -9,10 +9,15 @@ import (
 	"github.com/vanclief/uniex/exchanges"
 )
 
-func (api *API) GetBalances() (*market.BalanceSnapshot, error) {
-	const op = "kraken.GetBalances"
+func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
+	const op = "kraken.GetBalance"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
 
-	snapshot := &market.BalanceSnapshot{
+func (api *API) GetAssets() (*market.AssetsSnashot, error) {
+	const op = "kraken.GetAssets"
+
+	snapshot := &market.AssetsSnashot{
 		Time: float64(time.Now().Unix()),
 	}
 
@@ -38,7 +43,7 @@ func (api *API) GetBalances() (*market.BalanceSnapshot, error) {
 		}
 
 		balance := &market.Balance{Asset: asset, Amount: amount}
-		snapshot.Balances = append(snapshot.Balances, *balance)
+		snapshot.Assets = append(snapshot.Assets, *balance)
 	}
 
 	return snapshot, nil
@@ -62,13 +67,23 @@ func (api *API) CancelOrder(order *market.Order) (*market.Order, error) {
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
+func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
+	const op = "kraken.GetPositions"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
 func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.Position, error) {
 	const op = "kraken.GetPositions"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
-	const op = "kraken.GetPositions"
+func (api *API) UpdatePosition(request *exchanges.UpdatePositionRequest) (*market.Position, error) {
+	const op = "kraken.UpdatePosition"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
+func (api *API) ClosePosition(request *exchanges.ClosePositionRequest) (*market.Position, error) {
+	const op = "kraken.ClosePosition"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 

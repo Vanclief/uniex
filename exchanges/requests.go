@@ -26,3 +26,11 @@ type GetPositionsRequest struct {
 	EndTime   string   `json:"end_time"`
 	Offset    int      `json:"offset"`
 }
+
+type UpdatePositionRequest struct {
+	ID string `json:"id"`
+}
+
+type ClosePositionRequest struct {
+	ID string `json:"id"`
+}

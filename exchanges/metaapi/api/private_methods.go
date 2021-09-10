@@ -6,8 +6,13 @@ import (
 	"github.com/vanclief/uniex/exchanges"
 )
 
-func (api *API) GetBalances() (*market.BalanceSnapshot, error) {
+func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
 	const op = "MetaAPI.GetBalances"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
+func (api *API) GetAssets() (*market.AssetsSnashot, error) {
+	const op = "MetaAPI.GetAssets"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
@@ -29,13 +34,23 @@ func (api *API) CancelOrder(order *market.Order) (*market.Order, error) {
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
+func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
+	const op = "MetaAPI.GetPositions"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
 func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.Position, error) {
 	const op = "MetaAPI.GetPositions"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
-	const op = "MetaAPI.GetPositions"
+func (api *API) UpdatePosition(request *exchanges.UpdatePositionRequest) (*market.Position, error) {
+	const op = "MetaAPI.UpdatePosition"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
+func (api *API) ClosePosition(request *exchanges.ClosePositionRequest) (*market.Position, error) {
+	const op = "MetaAPI.ClosePosition"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 

@@ -1,10 +1,11 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
-	"testing"
 )
 
 var bitsoAPI *API
@@ -12,7 +13,7 @@ var bitsoAPI *API
 func init() {
 	viper.AutomaticEnv()
 	apiKey := viper.GetString("BITSO_API_KEY")
-	apiSecret  := viper.GetString("BITSO_SECRET")
+	apiSecret := viper.GetString("BITSO_SECRET")
 
 	bitsoAPI, _ = New(apiKey, apiSecret)
 }
@@ -44,7 +45,7 @@ func TestAPI_GetOrderBook(t *testing.T) {
 			Name:   "Mexican Peso",
 		},
 	}
-	ob, err := bitsoAPI.GetOrderBook(pair)
+	ob, err := bitsoAPI.GetOrderBook(pair, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, ob)
 }

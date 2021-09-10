@@ -20,7 +20,8 @@ type ExchangeAPI interface {
 	GetOrderBook(pair *market.Pair, options *GetOrderBookOptions) (*market.OrderBook, error)
 
 	// Private Endpoints
-	GetBalances() (*market.BalanceSnapshot, error)
+	GetBalance() (*market.BalanceSnapshot, error)
+	GetAssets() (*market.AssetsSnashot, error)
 
 	// Orders
 	GetOrders(request *GetOrdersRequest) ([]market.Order, error)
@@ -32,7 +33,10 @@ type ExchangeAPI interface {
 
 	// Positions
 	GetPositions(request *GetPositionsRequest) ([]market.Position, error)
-	// GetTrades() ([]market.Trade, error)
+	UpdatePosition(request *UpdatePositionRequest) (*market.Position, error)
+	ClosePosition(request *ClosePositionRequest) (*market.Position, error)
+
+	// Fundings & Withdraws
 	// GetFundings() ([]market.Funding, error)
 	// GetWithdraws() ([]market.Withdraw, error)
 	// Withdraw() (market.Asset, error)

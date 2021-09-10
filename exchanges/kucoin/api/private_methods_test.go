@@ -16,10 +16,10 @@ func init() {
 	kucoinAPI, _ = New(apiKey, passphrase, secretKey)
 }
 
-func TestGetBalances(t *testing.T) {
-	balances, err := kucoinAPI.GetBalances()
+func TestGetBalance(t *testing.T) {
+	balance, err := kucoinAPI.GetBalance()
 	assert.Nil(t, err)
-	assert.NotNil(t, balances)
+	assert.NotNil(t, balance)
 }
 
 func TestGetOrders(t *testing.T) {

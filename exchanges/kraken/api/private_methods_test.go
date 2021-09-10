@@ -17,8 +17,8 @@ func init() {
 	krakenAPI, _ = New(apiKey, secretKey)
 }
 
-func TestGetBalances(t *testing.T) {
-	balance, err := krakenAPI.GetBalances()
+func GetAssets(t *testing.T) {
+	assets, err := krakenAPI.GetAssets()
 	assert.Nil(t, err)
-	assert.NotNil(t, balance)
+	assert.NotNil(t, assets)
 }

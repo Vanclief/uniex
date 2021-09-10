@@ -65,7 +65,7 @@ func (c *Client) httpRequest(method, URL string, data url.Values, responseType i
 
 	err = json.Unmarshal(responseBody, apiResponse.Payload)
 	if err != nil {
-		return ez.Wrap(op, err)
+		return ez.New(op, ez.EINVALID, err.Error(), err)
 	}
 
 	defer response.Body.Close()
