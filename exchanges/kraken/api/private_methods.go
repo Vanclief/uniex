@@ -62,9 +62,9 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 }
 
 // CancelOrder - Cancels an existing order
-func (api *API) CancelOrder(order *market.Order) (*market.Order, error) {
+func (api *API) CancelOrder(order *market.Order) (string, error) {
 	const op = "kraken.CancelOrder"
-	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+	return "", ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
 func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
@@ -77,14 +77,14 @@ func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.P
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) UpdatePosition(request *exchanges.UpdatePositionRequest) (*market.Position, error) {
+func (api *API) UpdatePosition(position *market.Position, request *exchanges.UpdatePositionRequest) (*market.Position, error) {
 	const op = "kraken.UpdatePosition"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) ClosePosition(request *exchanges.ClosePositionRequest) (*market.Position, error) {
+func (api *API) ClosePosition(position *market.Position) (string, error) {
 	const op = "kraken.ClosePosition"
-	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+	return "", ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
 // GetFundingAddress - Retrieves or generates a new deposit addresses for an asset

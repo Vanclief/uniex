@@ -22,7 +22,7 @@ func TestGetTicker(t *testing.T) {
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USD", "US Dollar")
 
-	ETHUSD, _ := market.NewPair(ETH, USD)
+	ETHUSD := market.NewPair(ETH, USD)
 
 	ticker, err := krakenAPI.GetTicker(ETHUSD)
 	assert.Nil(t, err)
@@ -34,7 +34,7 @@ func TestGetOrderBook(t *testing.T) {
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USD", "US Dollar")
 
-	ETHUSD, _ := market.NewPair(ETH, USD)
+	ETHUSD := market.NewPair(ETH, USD)
 	options := &exchanges.GetOrderBookOptions{Limit: 100}
 
 	orderBook, err := krakenAPI.GetOrderBook(ETHUSD, options)

@@ -16,7 +16,7 @@ func (c *Client) GetHealth() error {
 	data := url.Values{}
 	response := &MetaAPIResponse{}
 
-	err := c.httpRequest("GET", URL, data, response)
+	err := c.httpRequest("GET", URL, data, nil, response)
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
@@ -35,7 +35,7 @@ func (c *Client) ReadCandle(symbol string, interval int) (*market.Candle, error)
 	URL := fmt.Sprintf(`https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/symbols/%s/current-candles/%s`, c.AccountID, url.QueryEscape(symbol), timeframe)
 
 	response := &MetaTraderCandle{}
-	err := c.httpRequest("GET", URL, nil, &response)
+	err := c.httpRequest("GET", URL, nil, nil, &response)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}
@@ -80,7 +80,7 @@ func (c *Client) GetOHLCData(symbol string, startTime, endTime time.Time, interv
 		}
 
 		response := &[]MetaTraderCandle{}
-		err := c.httpRequest("GET", URL, data, &response)
+		err := c.httpRequest("GET", URL, data, nil, &response)
 		if err != nil {
 			return nil, ez.Wrap(op, err)
 		}

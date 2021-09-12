@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -23,18 +24,29 @@ func New(accountID, token string) *Client {
 	}
 }
 
-func (c *Client) httpRequest(method, URL string, data url.Values, responseType interface{}) error {
+func (c *Client) httpRequest(method, URL string, data url.Values, body, responseType interface{}) error {
 	op := "MetaAPI.Client.httpRequest"
 	if data == nil {
 		data = url.Values{}
 	}
 
-	request, err := http.NewRequest(method, URL+"?"+data.Encode(), nil)
+	var jsonBody []byte
+	var err error
+
+	if body != nil {
+		jsonBody, err = json.Marshal(body)
+		if err != nil {
+			return ez.Wrap(op, err)
+		}
+	}
+
+	request, err := http.NewRequest(method, URL+"?"+data.Encode(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return ez.Wrap(op, err)
 	}
 
 	request.Header.Add("auth-token", c.Token)
+	request.Header.Set("Content-Type", "application/json")
 
 	response, err := c.http.Do(request)
 	if err != nil {

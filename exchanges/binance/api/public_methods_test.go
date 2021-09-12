@@ -1,12 +1,13 @@
 package binance
 
 import (
+	"testing"
+	"time"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/exchanges"
-	"testing"
-	"time"
 )
 
 var binanceAPI *API
@@ -24,7 +25,7 @@ func TestGetTicker(t *testing.T) {
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USDT", "Tether")
 
-	ETHUSD, _ := market.NewPair(ETH, USD)
+	ETHUSD := market.NewPair(ETH, USD)
 
 	ticker, err := binanceAPI.GetTicker(ETHUSD)
 	assert.Nil(t, err)
@@ -36,7 +37,7 @@ func TestGetOrderBook(t *testing.T) {
 	ETH, _ := market.NewAsset("ETH", "Ethereum")
 	USD, _ := market.NewAsset("USDT", "Tether")
 
-	ETHUSD, _ := market.NewPair(ETH, USD)
+	ETHUSD := market.NewPair(ETH, USD)
 	options := &exchanges.GetOrderBookOptions{Limit: 100}
 
 	orderBook, err := binanceAPI.GetOrderBook(ETHUSD, options)
@@ -52,7 +53,7 @@ func TestGetHistoricalData(t *testing.T) {
 	start := time.Now().Add(-100 * time.Hour)
 	end := time.Now()
 
-	ETHUSDT, _ := market.NewPair(ETH, USDT)
+	ETHUSDT := market.NewPair(ETH, USDT)
 
 	candles, err := binanceAPI.GetHistoricalData(ETHUSDT, start, end, 1)
 	assert.Nil(t, err)

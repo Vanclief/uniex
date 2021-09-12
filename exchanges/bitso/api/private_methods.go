@@ -27,9 +27,9 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) CancelOrder(order *market.Order) (*market.Order, error) {
+func (api *API) CancelOrder(order *market.Order) (string, error) {
 	const op = "bitso.CancelOrder"
-	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+	return "", ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
 // Trades
@@ -44,12 +44,12 @@ func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.P
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) UpdatePosition(request *exchanges.UpdatePositionRequest) (*market.Position, error) {
+func (api *API) UpdatePosition(position *market.Position, request *exchanges.UpdatePositionRequest) (*market.Position, error) {
 	const op = "bitso.UpdatePosition"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) ClosePosition(request *exchanges.ClosePositionRequest) (*market.Position, error) {
+func (api *API) ClosePosition(position *market.Position) (string, error) {
 	const op = "bitso.ClosePosition"
-	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+	return "", ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }

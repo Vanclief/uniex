@@ -34,7 +34,7 @@ type MetatraderAccountInformation struct {
 	Margin       float64 `json:"margin"`
 	FreeMargin   float64 `json:"freeMargin"`
 	Leverage     float64 `json:"leverage"`
-	MarginLevel  int64   `json:"marginLevel"`
+	MarginLevel  float64 `json:"marginLevel"`
 	TradeAllowed bool    `json:"tradeAllowed"`
 	InvestorMode bool    `json:"investorMode"`
 	MarginMode   string  `json:"marginMode"`
@@ -101,22 +101,22 @@ type MetatraderOrder struct {
 
 type MetatraderTrade struct {
 	ActionType        string   `json:"actionType"`
-	Symbol            string   `json:"symbol"`
-	Volume            float64  `json:"volume"`
-	OpenPrice         float64  `json:"openPrice"`
-	StopLoss          float64  `json:"stopLoss"`
-	TakeProfit        float64  `json:"takeProfit"`
-	StopLossUnits     string   `json:"stopLossUnits"`
-	TakeProfitUnits   string   `json:"takeProfitUnits"`
-	OrderID           string   `json:"orderId"`
-	PositionID        string   `json:"positionId"`
-	Comment           string   `json:"comment"`
-	ClientID          string   `json:"clientId"`
-	Magic             int      `json:"magic"`
-	Slippage          float64  `json:"slippage"`
-	FillingModes      []string `json:"fillingModes"`
-	CloseByPositionId string   `json:"closeByPositionId"`
-	StopLimitPrice    float64  `json:"stopLimitPrice"`
+	Symbol            string   `json:"symbol,omitempty"`
+	Volume            float64  `json:"volume,omitempty"`
+	OpenPrice         float64  `json:"openPrice,omitempty"`
+	StopLoss          float64  `json:"stopLoss,omitempty"`
+	TakeProfit        float64  `json:"takeProfit,omitempty"`
+	StopLossUnits     string   `json:"stopLossUnits,omitempty"`
+	TakeProfitUnits   string   `json:"takeProfitUnits,omitempty"`
+	OrderID           string   `json:"orderId,omitempty"`
+	PositionID        string   `json:"positionId,omitempty"`
+	Comment           string   `json:"comment,omitempty"`
+	ClientID          string   `json:"clientId,omitempty"`
+	Magic             int      `json:"magic,omitempty"`
+	Slippage          float64  `json:"slippage,omitempty"`
+	FillingModes      []string `json:"fillingModes,omitempty"`
+	CloseByPositionId string   `json:"closeByPositionId,omitempty"`
+	StopLimitPrice    float64  `json:"stopLimitPrice,omitempty"`
 }
 
 type MetatraderTradeResponse struct {

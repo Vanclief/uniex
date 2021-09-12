@@ -26,15 +26,15 @@ type ExchangeAPI interface {
 	// Orders
 	GetOrders(request *GetOrdersRequest) ([]market.Order, error)
 	CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error)
-	CancelOrder(order *market.Order) (*market.Order, error)
+	CancelOrder(order *market.Order) (string, error)
 
 	// Trades
 	GetTrades(request *GetTradesRequest) ([]market.Trade, error)
 
 	// Positions
 	GetPositions(request *GetPositionsRequest) ([]market.Position, error)
-	UpdatePosition(request *UpdatePositionRequest) (*market.Position, error)
-	ClosePosition(request *ClosePositionRequest) (*market.Position, error)
+	UpdatePosition(position *market.Position, request *UpdatePositionRequest) (*market.Position, error)
+	ClosePosition(position *market.Position) (string, error)
 
 	// Fundings & Withdraws
 	// GetFundings() ([]market.Funding, error)
