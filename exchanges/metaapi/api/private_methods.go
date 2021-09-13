@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -17,8 +16,6 @@ func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}
-
-	fmt.Println("accountInfo", accountInfo)
 
 	balance := &market.BalanceSnapshot{
 		Balance:    accountInfo.Balance,
@@ -45,14 +42,31 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 		return nil, ez.New(op, ez.EINVALID, "THis API only returns open orders", nil)
 	}
 
-	metaOrders, err := api.Client.GetOrders()
-	if err != nil {
-		return nil, ez.Wrap(op, err)
+	var metaOrders []client.MetatraderOrder
+	var err error
+
+	if len(request.IDs) > 0 {
+		for _, id := range request.IDs {
+			order, err := api.Client.GetOrderByID(id)
+			if err == nil {
+				metaOrders = append(metaOrders, *order)
+			}
+		}
+	} else {
+		metaOrders, err = api.Client.GetOrders()
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 	}
 
 	for _, metaOrder := range metaOrders {
 
 		openTime, err := time.Parse(time.RFC3339, metaOrder.Time)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
+
+		closeTime, err := time.Parse(time.RFC3339, metaOrder.DoneTime)
 		if err != nil {
 			return nil, ez.Wrap(op, err)
 		}
@@ -64,6 +78,7 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 			Volume:         metaOrder.Volume,
 			ExecutedVolume: metaOrder.CurrentVolume,
 			OpenTime:       openTime,
+			CloseTime:      closeTime,
 		}
 
 		switch metaOrder.Type {
@@ -84,6 +99,9 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 		switch metaOrder.State {
 		case "ORDER_STATE_PLACED":
 			order.Status = market.UnfilledOrder
+		case "ORDER_STATE_FILLED":
+			order.Status = market.FulfilledOrder
+			order.Price = metaOrder.CurrentPrice
 		}
 
 		orders = append(orders, order)
@@ -165,7 +183,7 @@ func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.P
 	positions := []market.Position{}
 
 	if request.Status == exchanges.ClosedStatus {
-		return nil, ez.New(op, ez.EINVALID, "THis API only returns open positions", nil)
+		return nil, ez.New(op, ez.EINVALID, "This API only returns open positions", nil)
 	}
 
 	metaPositions, err := api.Client.GetPositions()

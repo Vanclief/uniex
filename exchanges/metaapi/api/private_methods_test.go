@@ -15,8 +15,15 @@ func TestGetBalance(t *testing.T) {
 }
 
 func TestGetOrders(t *testing.T) {
+	// Open
 	request := &exchanges.GetOrdersRequest{}
 	response, err := metaAPI.GetOrders(request)
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+
+	// By IDs
+	request = &exchanges.GetOrdersRequest{IDs: []string{"45105566"}}
+	response, err = metaAPI.GetOrders(request)
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
 }

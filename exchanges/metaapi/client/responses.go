@@ -86,7 +86,7 @@ type MetatraderOrder struct {
 	TakeProfit                  float64 `json:"takeProfit"`
 	Volume                      float64 `json:"volume"`
 	CurrentVolume               float64 `json:"currentVolume"`
-	PositionID                  string  `json:"positionId"`
+	PositionID                  int64   `json:"positionId"`
 	Comment                     string  `json:"comment"`
 	BrokerComment               string  `json:"brokerComment"`
 	ClientID                    string  `json:"clientId"`
@@ -125,4 +125,27 @@ type MetatraderTradeResponse struct {
 	Message     string `json:"message"`
 	OrderID     string `json:"orderId"`
 	PositionID  string `json:"positionId"`
+}
+
+type MetatraderDeal struct {
+	ID                          string  `json:"id"`
+	Type                        string  `json:"type"`
+	EntryType                   string  `json:"entryType"`
+	Symbol                      string  `json:"symbol"`
+	Magic                       int     `json:"magic"`
+	Time                        string  `json:"time"`
+	BrokerTime                  string  `json:"brokerTime"`
+	Volume                      float64 `json:"volume"`
+	Price                       float64 `json:"price"`
+	Commission                  float64 `json:"commission"`
+	Swap                        float64 `json:"swap"`
+	Profit                      float64 `json:"profit"`
+	PositionID                  string  `json:"positionId"`
+	OrderID                     string  `json:"orderId"`
+	Comment                     string  `json:"comment"`
+	BrokerComment               string  `json:"brokerComment"`
+	ClientID                    string  `json:"clientId"`
+	Platform                    string  `json:"platform"`
+	Reason                      string  `json:"reason"`
+	AccountCurrencyExchangeRate float64 `json:"accountCurrencyExchangeRate"`
 }

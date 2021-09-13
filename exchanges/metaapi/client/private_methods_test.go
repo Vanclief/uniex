@@ -28,8 +28,20 @@ func TestGetPositions(t *testing.T) {
 	assert.NotNil(t, response)
 }
 
+func TestGetDealByPositionID(t *testing.T) {
+	response, err := client.GetDealByPositionID("45153120")
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+}
+
 func TestGetOrders(t *testing.T) {
 	response, err := client.GetOrders()
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+}
+
+func TestGetOrderByID(t *testing.T) {
+	response, err := client.GetOrderByID("45105566")
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
 }

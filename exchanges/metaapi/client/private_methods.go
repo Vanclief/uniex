@@ -37,6 +37,23 @@ func (c *Client) GetPositions() ([]MetatraderPosition, error) {
 	return *response, nil
 }
 
+func (c *Client) GetDealByPositionID(id string) (*MetatraderDeal, error) {
+	const op = "MetaAPI.Client.GetDealByPositionID"
+	URL := fmt.Sprintf("https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/history-deals/position/%s", c.AccountID, id)
+
+	data := url.Values{}
+	response := &[]MetatraderDeal{}
+
+	err := c.httpRequest("GET", URL, data, nil, response)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	deals := *response
+
+	return &deals[1], nil
+}
+
 func (c *Client) GetOrders() ([]MetatraderOrder, error) {
 	const op = "MetaAPI.Client.GetOrders"
 	URL := fmt.Sprintf("https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/orders", c.AccountID)
@@ -50,6 +67,23 @@ func (c *Client) GetOrders() ([]MetatraderOrder, error) {
 	}
 
 	return *response, nil
+}
+
+func (c *Client) GetOrderByID(id string) (*MetatraderOrder, error) {
+	const op = "MetaAPI.Client.GetOrderByID"
+	URL := fmt.Sprintf("https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/history-orders/ticket/%s", c.AccountID, id)
+
+	data := url.Values{}
+	response := &[]MetatraderOrder{}
+
+	err := c.httpRequest("GET", URL, data, nil, response)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	orders := *response
+
+	return &orders[0], nil
 }
 
 func (c *Client) Trade(request *MetatraderTrade) (*MetatraderTradeResponse, error) {
