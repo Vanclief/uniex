@@ -415,6 +415,8 @@ github.com/vanclief/finmod v0.6.7 h1:93YyTugvloiU+HA9HFxr9Dk6XqYgU9dkjUzbpfZT8uM
 github.com/vanclief/finmod v0.6.7/go.mod h1:JWC6Zga3NqTc1c2jDmMsYc9c0NiB0XpPQRECVeDchAo=
 github.com/vanclief/finmod v0.6.10 h1:laykNsKjfbPg7hyztM3aUg5N5Vr4TjkeCDLV0hyzQKg=
 github.com/vanclief/finmod v0.6.10/go.mod h1:JWC6Zga3NqTc1c2jDmMsYc9c0NiB0XpPQRECVeDchAo=
+github.com/vanclief/finmod v0.6.11 h1:/kzVJgML4eMcv7pKbFZvK5s7svg2VbBwSC1c/E62CjE=
+github.com/vanclief/finmod v0.6.11/go.mod h1:JWC6Zga3NqTc1c2jDmMsYc9c0NiB0XpPQRECVeDchAo=
 github.com/vanclief/state v0.4.3 h1:KbZVMbUcN70zkVyCAhqwXgFZPYpeJ1lkpW5Nq3Vbtmg=
 github.com/vanclief/state v0.4.3/go.mod h1:IWgbCN8n+Z+s4JHggHt5tmVDut1Gv/UUM5mKcUo4Vtk=
 github.com/vmihailenco/bufpool v0.1.5/go.mod h1:fL9i/PRTuS7AELqAHwSU1Zf1c70xhkhGe/cD5ud9pJk=
