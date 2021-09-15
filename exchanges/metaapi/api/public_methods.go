@@ -16,7 +16,7 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 func (api *API) GetCurrentCandle(pair *market.Pair, interval int) (*market.Candle, error) {
 	const op = "MetaAPI.GetCurrentCandle"
 
-	pairString := pair.Base.Symbol
+	pairString := pair.Symbol("")
 
 	candle, err := api.Client.ReadCandle(pairString, interval)
 	if err != nil {
@@ -28,7 +28,7 @@ func (api *API) GetCurrentCandle(pair *market.Pair, interval int) (*market.Candl
 
 func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error) {
 	const op = "MetaAPI.GetHistoricalData"
-	pairString := pair.Base.Symbol
+	pairString := pair.Symbol("")
 
 	candles, err := api.Client.GetOHLCData(pairString, start, end, interval)
 	if err != nil {

@@ -20,16 +20,8 @@ func init() {
 
 func TestGetCurrentCandle(t *testing.T) {
 
-	pair := &market.Pair{
-		Base: &market.Asset{
-			Symbol: "#US30",
-			Name:   "Dow Jones",
-		},
-		Quote: &market.Asset{
-			Symbol: "USD",
-			Name:   "US Dollar",
-		},
-	}
+	pair := &market.Pair{}
+	pair.AltSymbol = "#US30"
 
 	candle, err := metaAPI.GetCurrentCandle(pair, 2)
 	assert.Nil(t, err)
@@ -37,21 +29,31 @@ func TestGetCurrentCandle(t *testing.T) {
 }
 
 func TestAPI_GetHistoricalData(t *testing.T) {
-	pair := &market.Pair{
-		Base: &market.Asset{
-			Symbol: "#Germany30",
-			Name:   "Germany DAX",
-		},
-		Quote: &market.Asset{
-			Symbol: "USD",
-			Name:   "US Dollar",
-		},
-	}
 
+	pair := &market.Pair{}
+	pair.AltSymbol = "#Germany30"
 	start := time.Now().Add(-100 * time.Hour)
 	end := time.Now()
 
 	historicalData, err := metaAPI.GetHistoricalData(pair, start, end, 1)
 	assert.Nil(t, err)
 	assert.NotNil(t, historicalData)
+
+	pair = &market.Pair{
+		Base: &market.Asset{
+			Symbol: "BTC",
+			Name:   "Bitcoin",
+		},
+		Quote: &market.Asset{
+			Symbol: "USD",
+			Name:   "US Dollar",
+		},
+	}
+	start = time.Now().Add(-100 * time.Hour)
+	end = time.Now()
+
+	historicalData, err = metaAPI.GetHistoricalData(pair, start, end, 1)
+	assert.Nil(t, err)
+	assert.NotNil(t, historicalData)
+
 }

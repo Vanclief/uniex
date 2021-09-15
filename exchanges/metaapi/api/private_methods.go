@@ -117,7 +117,7 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 
 	// pair.Base.Symbol
 	request := &client.MetatraderTrade{
-		Symbol:    orderRequest.Pair.Symbol(),
+		Symbol:    orderRequest.Pair.Symbol(""),
 		OpenPrice: orderRequest.Price,
 		Volume:    orderRequest.Quantity,
 	}
