@@ -39,6 +39,7 @@ func TestCreateOrder(t *testing.T) {
 	response, err := metaAPI.CreateOrder(request)
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
+	assert.NotNil(t, response.ID)
 	assert.Equal(t, request.Price, response.Price)
 }
 

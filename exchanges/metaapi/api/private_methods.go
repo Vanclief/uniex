@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -135,6 +136,8 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 			request.ActionType = "ORDER_TYPE_SELL_LIMIT"
 		}
 	}
+
+	fmt.Println(op, request)
 
 	trade, err := api.Client.Trade(request)
 	if err != nil {
