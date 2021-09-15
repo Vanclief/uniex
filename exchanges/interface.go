@@ -12,7 +12,7 @@ type Exchange struct {
 	MakerFee         float64
 	TakerFee         float64
 	ManagedPositions bool
-	HedingMode       bool
+	HedgingMode      bool
 }
 
 // ExchangeAPI - Interface for an unified exchange API
