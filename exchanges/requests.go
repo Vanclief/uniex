@@ -20,7 +20,6 @@ type GetOrdersRequest struct {
 }
 
 type UpdateOrderRequest struct {
-	ID         string  `json:"id"`
 	Price      float64 `json:"price"`
 	StopLoss   float64 `json:"stop_loss"`
 	TakeProfit float64 `json:"take_profit"`
