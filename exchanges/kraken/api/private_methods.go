@@ -61,6 +61,11 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
+func (api *API) UpdateOrder(order *market.Order, request *exchanges.UpdateOrderRequest) (*market.Order, error) {
+	const op = "kraken.UpdateOrder"
+	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
+}
+
 // CancelOrder - Cancels an existing order
 func (api *API) CancelOrder(order *market.Order) (string, error) {
 	const op = "kraken.CancelOrder"

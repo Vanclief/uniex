@@ -155,6 +155,43 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 	return order, nil
 }
 
+func (api *API) UpdateOrder(order *market.Order, request *exchanges.UpdateOrderRequest) (*market.Order, error) {
+	const op = "MetaAPI.UpdateOrder"
+
+	metaRequest := &client.MetatraderTrade{
+		OrderID:    order.ID,
+		ActionType: "ORDER_MODIFY",
+		OpenPrice:  request.Price,
+		StopLoss:   request.StopLoss,
+		TakeProfit: request.TakeProfit,
+		Volume:     request.Volume,
+	}
+
+	_, err := api.Client.Trade(metaRequest)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
+	if request.Price != 0 {
+		order.Price = request.Price
+	}
+
+	if request.Volume != 0 {
+		order.Volume = request.Volume
+	}
+
+	// TODO
+	// if request.StopLoss != 0 {
+	// 	order.StopLoss = request.StopLoss
+	// }
+
+	// if request.TakeProfit != 0 {
+	// 	order.TakeProfit = request.TakeProfit
+	// }
+
+	return order, nil
+}
+
 // CancelOrder - Cancels an existing order
 func (api *API) CancelOrder(order *market.Order) (string, error) {
 	const op = "MetaAPI.CancelOrder"
@@ -173,7 +210,7 @@ func (api *API) CancelOrder(order *market.Order) (string, error) {
 }
 
 func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
-	const op = "MetaAPI.GetPositions"
+	const op = "MetaAPI.GetTrades"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 

@@ -42,6 +42,28 @@ func TestCreateOrder(t *testing.T) {
 	assert.Equal(t, request.Price, response.Price)
 }
 
+func TestUpdateOrder(t *testing.T) {
+	request := &market.OrderRequest{
+		Action:   market.SellAction,
+		Type:     market.LimitOrder,
+		Pair:     &market.Pair{AltSymbol: "BTCUSD"},
+		Price:    50000,
+		Quantity: 0.1,
+	}
+	order, err := metaAPI.CreateOrder(request)
+	assert.Nil(t, err)
+	assert.NotNil(t, order)
+	assert.Equal(t, request.Price, order.Price)
+
+	updateRequest := &exchanges.UpdateOrderRequest{
+		Price: 51000,
+	}
+	order, err = metaAPI.UpdateOrder(order, updateRequest)
+	assert.Nil(t, err)
+	assert.NotNil(t, order)
+	assert.Equal(t, updateRequest.Price, order.Price)
+}
+
 func TestCancelOrder(t *testing.T) {
 	// Create the order
 	request := &market.OrderRequest{

@@ -25,7 +25,8 @@ type ExchangeAPI interface {
 
 	// Orders
 	GetOrders(request *GetOrdersRequest) ([]market.Order, error)
-	CreateOrder(orderRequest *market.OrderRequest) (*market.Order, error)
+	CreateOrder(request *market.OrderRequest) (*market.Order, error)
+	UpdateOrder(order *market.Order, request *UpdateOrderRequest) (*market.Order, error)
 	CancelOrder(order *market.Order) (string, error)
 
 	// Trades

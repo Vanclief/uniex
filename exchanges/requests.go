@@ -19,6 +19,14 @@ type GetOrdersRequest struct {
 	Offset    int      `json:"offset"`
 }
 
+type UpdateOrderRequest struct {
+	ID         string  `json:"id"`
+	Price      float64 `json:"price"`
+	StopLoss   float64 `json:"stop_loss"`
+	TakeProfit float64 `json:"take_profit"`
+	Volume     float64 `json:"volume"`
+}
+
 type GetTradesRequest struct {
 	IDs       []string `json:"ids"`
 	StartTime string   `json:"start_time"`
