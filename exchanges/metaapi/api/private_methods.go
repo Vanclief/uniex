@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -130,21 +129,23 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		if orderRequest.Type == market.MarketOrder {
 			request.ActionType = "ORDER_TYPE_BUY"
 		} else {
-			request.ActionType = "ORDER_TYPE_BUY_LIMIT"
+			request.ActionType = "ORDER_TYPE_BUY_STOP"
 		}
 	case market.SellAction:
 		if orderRequest.Type == market.MarketOrder {
 			request.ActionType = "ORDER_TYPE_SELL"
 		} else {
-			request.ActionType = "ORDER_TYPE_SELL_LIMIT"
+			request.ActionType = "ORDER_TYPE_SELL_STOP"
 		}
 	}
-
-	fmt.Println(op, request)
 
 	trade, err := api.Client.Trade(request)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
+	}
+
+	if trade.StringCode != "TRADE_RETCODE_DONE" {
+		return nil, ez.New(op, ez.EINVALID, trade.Message, nil)
 	}
 
 	order := &market.Order{

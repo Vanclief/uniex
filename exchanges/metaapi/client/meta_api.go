@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -75,8 +74,6 @@ func (c *Client) httpRequest(method, URL string, data url.Values, body, response
 	if responseType != nil {
 		apiResponse.Payload = responseType
 	}
-
-	fmt.Println(op, string(responseBody))
 
 	err = json.Unmarshal(responseBody, apiResponse.Payload)
 	if err != nil {

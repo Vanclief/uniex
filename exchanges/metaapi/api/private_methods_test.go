@@ -30,7 +30,7 @@ func TestGetOrders(t *testing.T) {
 
 func TestCreateOrder(t *testing.T) {
 	request := &market.OrderRequest{
-		Action:   market.SellAction,
+		Action:   market.BuyAction,
 		Type:     market.LimitOrder,
 		Pair:     &market.Pair{AltSymbol: "BTCUSD"},
 		Price:    50000,
