@@ -1,5 +1,7 @@
 package client
 
+import "encoding/json"
+
 type MetaAPIResponse struct {
 	Payload interface{}
 }
@@ -70,33 +72,33 @@ type MetatraderPosition struct {
 }
 
 type MetatraderOrder struct {
-	ID                          string  `json:"id"`
-	Type                        string  `json:"type"`
-	State                       string  `json:"state"`
-	Magic                       int     `json:"magic"`
-	Time                        string  `json:"time"`
-	BrokerTime                  string  `json:"brokerTime"`
-	DoneTime                    string  `json:"doneTime"`
-	BrokerDoneTime              string  `json:"brokerDoneTime"`
-	Symbol                      string  `json:"symbol"`
-	OpenPrice                   float64 `json:"openPrice"`
-	StopLimitPrice              float64 `json:"stopLimitPrice"`
-	CurrentPrice                float64 `json:"currentPrice"`
-	StopLoss                    float64 `json:"stopLoss"`
-	TakeProfit                  float64 `json:"takeProfit"`
-	Volume                      float64 `json:"volume"`
-	CurrentVolume               float64 `json:"currentVolume"`
-	PositionID                  int64   `json:"positionId"`
-	Comment                     string  `json:"comment"`
-	BrokerComment               string  `json:"brokerComment"`
-	ClientID                    string  `json:"clientId"`
-	Platform                    string  `json:"platform"`
-	Reason                      string  `json:"reason"`
-	FillingMode                 string  `json:"fillingMode"`
-	ExpirationType              string  `json:"expirationType"`
-	ExpirationTime              string  `json:"expirationTime"`
-	AccountCurrencyExchangeRate float64 `json:"accountCurrencyExchangeRate"`
-	CloseByPosition             float64 `json:"closeByPosition"`
+	ID                          string      `json:"id"`
+	Type                        string      `json:"type"`
+	State                       string      `json:"state"`
+	Magic                       int         `json:"magic"`
+	Time                        string      `json:"time"`
+	BrokerTime                  string      `json:"brokerTime"`
+	DoneTime                    string      `json:"doneTime"`
+	BrokerDoneTime              string      `json:"brokerDoneTime"`
+	Symbol                      string      `json:"symbol"`
+	OpenPrice                   float64     `json:"openPrice"`
+	StopLimitPrice              float64     `json:"stopLimitPrice"`
+	CurrentPrice                float64     `json:"currentPrice"`
+	StopLoss                    float64     `json:"stopLoss"`
+	TakeProfit                  float64     `json:"takeProfit"`
+	Volume                      float64     `json:"volume"`
+	CurrentVolume               float64     `json:"currentVolume"`
+	PositionID                  json.Number `json:"positionId"`
+	Comment                     string      `json:"comment"`
+	BrokerComment               string      `json:"brokerComment"`
+	ClientID                    json.Number `json:"clientId"`
+	Platform                    string      `json:"platform"`
+	Reason                      string      `json:"reason"`
+	FillingMode                 string      `json:"fillingMode"`
+	ExpirationType              string      `json:"expirationType"`
+	ExpirationTime              string      `json:"expirationTime"`
+	AccountCurrencyExchangeRate float64     `json:"accountCurrencyExchangeRate"`
+	CloseByPosition             float64     `json:"closeByPosition"`
 }
 
 type MetatraderTrade struct {

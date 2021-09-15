@@ -67,11 +67,6 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 			return nil, ez.Wrap(op, err)
 		}
 
-		closeTime, err := time.Parse(time.RFC3339, metaOrder.DoneTime)
-		if err != nil {
-			return nil, ez.Wrap(op, err)
-		}
-
 		order := market.Order{
 			ID: metaOrder.ID,
 			// Pair: Unfilled for now as it is tricky having both symbols EURUSD & #US30
@@ -79,7 +74,15 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 			Volume:         metaOrder.Volume,
 			ExecutedVolume: metaOrder.CurrentVolume,
 			OpenTime:       openTime,
-			CloseTime:      closeTime,
+		}
+
+		if metaOrder.DoneTime != "" {
+			closeTime, err := time.Parse(time.RFC3339, metaOrder.DoneTime)
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+
+			order.CloseTime = closeTime
 		}
 
 		switch metaOrder.Type {
