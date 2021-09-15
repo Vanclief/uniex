@@ -7,10 +7,12 @@ import (
 
 // Exchange - An exchange or market data API
 type Exchange struct {
-	Name     string
-	API      ExchangeAPI
-	MakerFee float64
-	TakerFee float64
+	Name             string
+	API              ExchangeAPI
+	MakerFee         float64
+	TakerFee         float64
+	ManagedPositions bool
+	HedingMode       bool
 }
 
 // ExchangeAPI - Interface for an unified exchange API
