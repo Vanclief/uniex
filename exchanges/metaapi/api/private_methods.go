@@ -39,23 +39,34 @@ func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, 
 	orders := []market.Order{}
 
 	if request.Status == exchanges.ClosedStatus {
-		return nil, ez.New(op, ez.EINVALID, "THis API only returns open orders", nil)
+		return nil, ez.New(op, ez.EINVALID, "This API only returns open orders", nil)
 	}
 
 	var metaOrders []client.MetatraderOrder
 	var err error
 
+	metaOrders, err = api.Client.GetOrders()
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
 	if len(request.IDs) > 0 {
 		for _, id := range request.IDs {
-			order, err := api.Client.GetOrderByID(id)
-			if err == nil {
-				metaOrders = append(metaOrders, *order)
+
+			var fetched bool
+			for _, order := range metaOrders {
+				if order.ID == id {
+					fetched = true
+					break
+				}
 			}
-		}
-	} else {
-		metaOrders, err = api.Client.GetOrders()
-		if err != nil {
-			return nil, ez.Wrap(op, err)
+
+			if !fetched {
+				order, err := api.Client.GetOrderByID(id)
+				if err == nil {
+					metaOrders = append(metaOrders, *order)
+				}
+			}
 		}
 	}
 
