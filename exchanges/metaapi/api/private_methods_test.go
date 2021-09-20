@@ -97,10 +97,20 @@ func TestCancelOrder(t *testing.T) {
 }
 
 func TestGetPositions(t *testing.T) {
+	// Open
 	request := &exchanges.GetPositionsRequest{}
 	response, err := metaAPI.GetPositions(request)
+
 	assert.Nil(t, err)
 	assert.NotNil(t, response)
+
+	// By IDs
+	request = &exchanges.GetPositionsRequest{IDs: []string{"45424985"}}
+	response, err = metaAPI.GetPositions(request)
+	assert.Nil(t, err)
+	assert.NotNil(t, response)
+
+	assert.Len(t, response, 1)
 }
 
 func TestUpdatePosition(t *testing.T) {

@@ -37,8 +37,8 @@ func (c *Client) GetPositions() ([]MetatraderPosition, error) {
 	return *response, nil
 }
 
-func (c *Client) GetDealByPositionID(id string) (*MetatraderDeal, error) {
-	const op = "MetaAPI.Client.GetDealByPositionID"
+func (c *Client) GetDealsByPositionID(id string) ([]MetatraderDeal, error) {
+	const op = "MetaAPI.Client.GetDealsByPositionID"
 	URL := fmt.Sprintf("https://mt-client-api-v1.agiliumtrade.agiliumtrade.ai/users/current/accounts/%s/history-deals/position/%s", c.AccountID, id)
 
 	data := url.Values{}
@@ -49,9 +49,7 @@ func (c *Client) GetDealByPositionID(id string) (*MetatraderDeal, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	deals := *response
-
-	return &deals[1], nil
+	return *response, nil
 }
 
 func (c *Client) GetOrders() ([]MetatraderOrder, error) {

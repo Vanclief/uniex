@@ -246,6 +246,48 @@ func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.P
 		return nil, ez.Wrap(op, err)
 	}
 
+	if len(request.IDs) > 0 {
+		for _, id := range request.IDs {
+
+			var fetched bool
+			for _, position := range metaPositions {
+				if position.ID == id {
+					fetched = true
+					break
+				}
+			}
+
+			if !fetched {
+				metaDeal, err := api.Client.GetDealsByPositionID(id)
+				if err == nil && len(metaDeal) == 2 {
+
+					openTime, err := time.Parse(time.RFC3339, metaDeal[0].Time)
+					if err != nil {
+						return nil, ez.Wrap(op, err)
+					}
+
+					closeTime, err := time.Parse(time.RFC3339, metaDeal[1].Time)
+					if err != nil {
+						return nil, ez.Wrap(op, err)
+					}
+
+					position := market.Position{
+						ID:         id,
+						Open:       false,
+						OpenPrice:  metaDeal[0].Price,
+						ClosePrice: metaDeal[1].Price,
+						Quantity:   metaDeal[1].Volume,
+						Profit:     metaDeal[1].Profit,
+						OpenTime:   openTime,
+						CloseTime:  closeTime,
+					}
+
+					positions = append(positions, position)
+				}
+			}
+		}
+	}
+
 	for _, metaPosition := range metaPositions {
 
 		openTime, err := time.Parse(time.RFC3339, metaPosition.Time)
