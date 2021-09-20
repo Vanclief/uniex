@@ -36,12 +36,12 @@ type GetTradesRequest struct {
 }
 
 type GetPositionsRequest struct {
-	IDs       []string    `json:"ids"`
-	Status    Status      `json:"status"`
-	Pair      market.Pair `json:"pair"`
-	StartTime string      `json:"start_time"`
-	EndTime   string      `json:"end_time"`
-	Offset    int         `json:"offset"`
+	IDs       []string     `json:"ids"`
+	Status    Status       `json:"status"`
+	Pair      *market.Pair `json:"pair"`
+	StartTime string       `json:"start_time"`
+	EndTime   string       `json:"end_time"`
+	Offset    int          `json:"offset"`
 }
 
 type UpdatePositionRequest struct {
