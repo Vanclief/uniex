@@ -39,8 +39,8 @@ type BidAsk struct {
 	Rate      float64 `json:"r"`
 	Amount    float64 `json:"a"`
 	Value     float64 `json:"v"`
-	SellOrBuy int    `json:"t"`
-	UnixTime  int64  `json:"d"`
+	SellOrBuy int     `json:"t"`
+	UnixTime  int64   `json:"d"`
 }
 
 type Order struct {

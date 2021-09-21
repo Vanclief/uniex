@@ -16,16 +16,16 @@ import (
 )
 
 type Client struct {
-	APIKey string
-	APISecret  string
-	http   *http.Client
+	APIKey    string
+	APISecret string
+	http      *http.Client
 }
 
 func New(APIKey, APISecret string) *Client {
 	return &Client{
-		APIKey: APIKey,
+		APIKey:    APIKey,
 		APISecret: APISecret,
-		http:   &http.Client{},
+		http:      &http.Client{},
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gorilla/websocket"
+	log "github.com/inconshreveable/log15"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 )
@@ -14,18 +15,20 @@ type SubscribeConf struct {
 }
 
 type client struct {
-	host string
-	wsClient *websocket.Conn
+	host          string
+	wsClient      *websocket.Conn
 	subscriptions []SubscribeConf
 	// buffer for bursts or spikes in data
-	buffer int
+	buffer            int
+	connectionRetries int
 }
 
 func New(host string, opts ...Option) (*client, error) {
 	c := &client{
-		host:          host,
-		subscriptions: []SubscribeConf{},
-		buffer:        1000,
+		host:              host,
+		subscriptions:     []SubscribeConf{},
+		buffer:            1000,
+		connectionRetries: 3,
 	}
 	for _, opt := range opts {
 		if err := opt.applyOption(c); err != nil {
@@ -33,15 +36,24 @@ func New(host string, opts ...Option) (*client, error) {
 		}
 	}
 
-	c.connect()
-	err := c.subscribe()
-
+	var err error
+	for i := 0; i < c.connectionRetries; i++ {
+		err = c.connect()
+		if err == nil {
+			for j := 0; j < c.connectionRetries; j++ {
+				err = c.subscribe()
+				if err == nil {
+					break
+				}
+			}
+			break
+		}
+	}
 	return c, err
 }
 
 func (c *client) connect() error {
-	// TODO: validate response to identify errors
-	wsClient, _,  err :=  websocket.DefaultDialer.Dial(c.host, nil)
+	wsClient, _, err := websocket.DefaultDialer.Dial(c.host, nil)
 	c.wsClient = wsClient
 	return err
 }
@@ -62,11 +74,12 @@ func (c *client) subscribe() error {
 	return nil
 }
 
-func (c *client) Listen(ctx context.Context) <- chan market.OrderBook {
+func (c *client) Listen(ctx context.Context) <-chan market.OrderBook {
+	op := "bitso.ws.Listen"
 	chanMsgs := make(chan market.OrderBook, c.buffer)
 
 	go func() {
-		for  {
+		for {
 			select {
 			case <-ctx.Done():
 				close(chanMsgs)
@@ -74,7 +87,7 @@ func (c *client) Listen(ctx context.Context) <- chan market.OrderBook {
 			default:
 				_, bytes, err := c.wsClient.ReadMessage()
 				if err != nil {
-					// TODO: error should be handle here or in other part
+					log.Error("ws listen error", "op", op, "type", "reading msg", "error", err)
 					continue
 				}
 				order := Order{}
@@ -83,31 +96,37 @@ func (c *client) Listen(ctx context.Context) <- chan market.OrderBook {
 					continue
 				}
 				orderBook := market.OrderBook{
-					// TODO: fill with? default?
-					Time: 0,
-					Asks: []market.OrderBookRow{
-					},
-					Bids: []market.OrderBookRow{
-					},
+					Asks: []market.OrderBookRow{},
+					Bids: []market.OrderBookRow{},
 				}
 
+				var time int64
 				for _, bid := range order.Payload.Bids {
 					orderRow, err := transformToOrderBookRow(bid)
 					if err != nil {
-						// TODO: handler errors
+						log.Error("ws listen error", "op", op, "type", "transform", "error", err)
 						continue
 					}
 					orderBook.Bids = append(orderBook.Bids, *orderRow)
+					if time < bid.UnixTime {
+						time = bid.UnixTime
+					}
 				}
 
 				for _, ask := range order.Payload.Asks {
 					orderRow, err := transformToOrderBookRow(ask)
 					if err != nil {
-						// TODO: handler errors
+						log.Error("ws listen error", "op", op, "type", "transform", "error", err)
 						continue
 					}
 					orderBook.Asks = append(orderBook.Asks, *orderRow)
+					if time < ask.UnixTime {
+						time = ask.UnixTime
+					}
 				}
+
+				orderBook.Time = time
+
 				chanMsgs <- orderBook
 			}
 		}
@@ -116,11 +135,10 @@ func (c *client) Listen(ctx context.Context) <- chan market.OrderBook {
 	return chanMsgs
 }
 
-func transformToOrderBookRow(ba BidAsk) (*market.OrderBookRow, error){
+func transformToOrderBookRow(ba BidAsk) (*market.OrderBookRow, error) {
 	orderRow := &market.OrderBookRow{
-		Price:       ba.Value,
-		Volume:      ba.Amount,
-		// TODO: fill with? default?
+		Price:  ba.Value,
+		Volume: ba.Amount,
 		AccumVolume: 0,
 	}
 	return orderRow, nil
