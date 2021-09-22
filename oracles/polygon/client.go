@@ -94,25 +94,9 @@ func (p *Polygon) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	result := resp.Results
 
 	return &market.Ticker{
-		// TODO: get candle
-		Candle: &market.Candle{
-			Time:   result.TimeSIP / nanoDivider, // Check this is correct
-			Open:   0,
-			High:   0,
-			Low:    0,
-			Close:  0,
-			Volume: 0,
-		},
-		Ask: &market.OrderBookRow{
-			Price:       result.AskPrice,
-			Volume:      float64(result.AskSize * 100),
-			AccumVolume: float64(result.AskSize * 100),
-		},
-		Bid: &market.OrderBookRow{
-			Price:       result.BidPrice,
-			Volume:      float64(result.BidSize * 100),
-			AccumVolume: float64(result.BidSize * 100),
-		},
+		Time: result.TimeSIP / nanoDivider, // Check this is correct
+		Ask:  result.AskPrice,
+		Bid:  result.BidPrice,
 	}, nil
 }
 

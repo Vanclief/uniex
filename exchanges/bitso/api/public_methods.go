@@ -20,18 +20,6 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	mTime, err := time.Parse(time.RFC3339, bitsoTicker.CreatedAt)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
-	mHigh, err := strconv.ParseFloat(bitsoTicker.High, 64)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
-	mLow, err := strconv.ParseFloat(bitsoTicker.Low, 64)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
 	mVolume, err := strconv.ParseFloat(bitsoTicker.Volume, 64)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
@@ -46,25 +34,10 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 	}
 
 	ticker := &market.Ticker{
-		Time: requestTime.Unix(),
-		Candle: &market.Candle{
-			Time:   mTime.Unix(),
-			Open:   0,
-			High:   mHigh,
-			Low:    mLow,
-			Close:  0,
-			Volume: mVolume,
-		},
-		Ask: &market.OrderBookRow{
-			Price:       obrPriceAsk,
-			Volume:      0,
-			AccumVolume: 0,
-		},
-		Bid: &market.OrderBookRow{
-			Price:       obrPriceBid,
-			Volume:      0,
-			AccumVolume: 0,
-		},
+		Time:   requestTime.Unix(),
+		Ask:    obrPriceAsk,
+		Bid:    obrPriceBid,
+		Volume: mVolume,
 	}
 	return ticker, nil
 }

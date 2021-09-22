@@ -46,11 +46,6 @@ func (b Client) FetchBinanceCandles(pair string, start, end time.Time, interval 
 	return marketCandles, nil
 }
 
-type CandleOrderBook struct {
-	candle    *market.Candle
-	orderBook *market.OrderBook
-}
-
 func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	op := "binance.FetchTicker"
 
@@ -64,8 +59,6 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 		return nil, ez.New(op, ez.ENOTFOUND, "Candle array is empty", nil)
 	}
 
-	lastCandle := candles[len(candles)-1]
-
 	options := &exchanges.GetOrderBookOptions{Limit: 5}
 
 	ob, err := b.FetchOrderBook(pair, options)
@@ -77,24 +70,8 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 
 	ticker := &market.Ticker{
 		Time: time.Now().Unix(),
-		Candle: &market.Candle{
-			Time:   lastCandle.Time,
-			Open:   lastCandle.Open,
-			High:   lastCandle.High,
-			Low:    lastCandle.Low,
-			Close:  lastCandle.Close,
-			Volume: lastCandle.Volume,
-		},
-		Ask: &market.OrderBookRow{
-			Price:       firstAsk.Price,
-			Volume:      firstAsk.Quantity,
-			AccumVolume: firstAsk.Quantity,
-		},
-		Bid: &market.OrderBookRow{
-			Price:       firstBid.Price,
-			Volume:      firstBid.Quantity,
-			AccumVolume: firstBid.Quantity,
-		},
+		Ask:  firstAsk.Price,
+		Bid:  firstBid.Price,
 	}
 	return ticker, nil
 }

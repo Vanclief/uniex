@@ -148,24 +148,7 @@ func TestPolygon_GetTicker(t *testing.T) {
 				},
 			},
 			want: &market.Ticker{
-				Candle: &market.Candle{
-					Time:   1625011101976659083,
-					Open:   0,
-					High:   0,
-					Low:    0,
-					Close:  0,
-					Volume: 0,
-				},
-				Ask: &market.OrderBookRow{
-					Price:       0,
-					Volume:      0,
-					AccumVolume: 0,
-				},
-				Bid: &market.OrderBookRow{
-					Price:       0,
-					Volume:      0,
-					AccumVolume: 0,
-				},
+				Time: 1625011101976659083,
 			},
 		},
 	}

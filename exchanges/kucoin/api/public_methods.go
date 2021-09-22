@@ -37,33 +37,15 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		return nil, ez.Wrap(op, err)
 	}
 
-	bestAskSize, err := strconv.ParseFloat(kucoinTicker.BestAskSize, 64)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
-
 	bestBid, err := strconv.ParseFloat(kucoinTicker.BestBid, 64)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
-
-	bestBidSize, err := strconv.ParseFloat(kucoinTicker.BestBidSize, 64)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}
 
 	ticker := &market.Ticker{
 		Time: kucoinTicker.Time,
-		Ask: &market.OrderBookRow{
-			Price:       bestAsk,
-			Volume:      bestAskSize,
-			AccumVolume: bestAskSize,
-		},
-		Bid: &market.OrderBookRow{
-			Price:       bestBid,
-			Volume:      bestBidSize,
-			AccumVolume: bestBidSize,
-		},
+		Ask:  bestAsk,
+		Bid:  bestBid,
 	}
 
 	return ticker, nil

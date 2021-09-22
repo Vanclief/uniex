@@ -27,27 +27,9 @@ func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
 		// Because kraken doesn't return the timestamp, we make a estimate
 		// based on when did we made the request
 		ticker.Time = requestTime.Unix()
+		ticker.Ask = value.Ask.Price
+		ticker.Bid = value.Bid.Price
 
-		ticker.Candle = &market.Candle{
-			Time:   requestTime.Add(-24 * time.Hour).Unix(), // The candle we get is from the past 24 hours
-			Open:   value.OpeningPrice,
-			High:   value.High.Price,
-			Low:    value.Low.Price,
-			Close:  value.Close.Price,
-			Volume: value.Volume.Price,
-		}
-
-		ticker.Ask = &market.OrderBookRow{
-			Price:       value.Ask.Price,
-			Volume:      value.Ask.Volume,
-			AccumVolume: value.Ask.WholeLotVolume,
-		}
-
-		ticker.Bid = &market.OrderBookRow{
-			Price:       value.Bid.Price,
-			Volume:      value.Bid.Volume,
-			AccumVolume: value.Bid.WholeLotVolume,
-		}
 		break
 	}
 
