@@ -11,14 +11,17 @@ type Type struct {
 }
 
 type Trade struct {
-	Type    string `json:"type"`
-	Book    string `json:"book"`
-	Payload []struct {
-		I int    `json:"i"`
-		A string `json:"a"`
-		R string `json:"r"`
-		V string `json:"v"`
-	} `json:"payload"`
+	ID     int     `json:"i"`
+	Type   int     `json:"t"`
+	Amount float64 `json:"a"`
+	Rate   float64 `json:"r"`
+	Value  float64 `json:"v"`
+}
+
+type TradeType struct {
+	Type    string  `json:"type"`
+	Book    string  `json:"book"`
+	Payload []Trade `json:"payload"`
 }
 
 type DiffOrder struct {
