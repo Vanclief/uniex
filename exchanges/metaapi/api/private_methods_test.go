@@ -38,7 +38,7 @@ func TestCreateOrder(t *testing.T) {
 		Type:     market.LimitOrder,
 		Pair:     &market.Pair{Base: base, Quote: quote},
 		Price:    50000,
-		Quantity: 0.1,
+		Quantity: 0.111,
 	}
 	response, err := metaAPI.CreateOrder(request)
 	assert.Nil(t, err)

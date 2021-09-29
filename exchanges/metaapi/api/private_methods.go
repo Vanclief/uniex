@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -132,7 +133,7 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 	request := &client.MetatraderTrade{
 		Symbol:    orderRequest.Pair.Symbol(""),
 		OpenPrice: orderRequest.Price,
-		Volume:    orderRequest.Quantity,
+		Volume:    math.Round(orderRequest.Quantity*100) / 100,
 	}
 
 	switch orderRequest.Action {
