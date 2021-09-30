@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -136,6 +137,8 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		Volume:    math.Round(orderRequest.Quantity*100) / 100,
 	}
 
+	fmt.Println("CreateOrderRequest", request)
+
 	switch orderRequest.Action {
 	case market.BuyAction:
 		if orderRequest.Type == market.MarketOrder {
@@ -166,7 +169,7 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		Type:     orderRequest.Type,
 		Pair:     orderRequest.Pair,
 		Price:    orderRequest.Price,
-		Volume:   orderRequest.Quantity,
+		Volume:   request.Volume,
 		Status:   market.UnfilledOrder,
 		OpenTime: time.Now(),
 	}
@@ -183,7 +186,7 @@ func (api *API) UpdateOrder(order *market.Order, request *exchanges.UpdateOrderR
 		OpenPrice:  request.Price,
 		StopLoss:   request.StopLoss,
 		TakeProfit: request.TakeProfit,
-		Volume:     request.Volume,
+		Volume:     math.Round(request.Volume*100) / 100,
 	}
 
 	_, err := api.Client.Trade(metaRequest)
