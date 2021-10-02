@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"math"
 	"time"
 
@@ -136,8 +135,6 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		OpenPrice: orderRequest.Price,
 		Volume:    math.Round(orderRequest.Quantity*100) / 100,
 	}
-
-	fmt.Println("CreateOrderRequest", request)
 
 	switch orderRequest.Action {
 	case market.BuyAction:
