@@ -194,6 +194,7 @@ func (c *baseClient) ListenTrade(ctx context.Context) (<-chan market.Ticker, err
 				tradeType := TradeType{}
 				err = json.Unmarshal(bytes, &tradeType)
 				if err != nil {
+					log.Error("ws listen error", "op", op, "type", "reading msg", "error", err)
 					continue
 				}
 

@@ -13,9 +13,9 @@ type Type struct {
 type Trade struct {
 	ID     int     `json:"i"`
 	Type   int     `json:"t"`
-	Amount float64 `json:"a"`
-	Rate   float64 `json:"r"`
-	Value  float64 `json:"v"`
+	Amount float64 `json:"a,string"`
+	Rate   float64 `json:"r,string"`
+	Value  float64 `json:"v,string"`
 }
 
 type TradeType struct {

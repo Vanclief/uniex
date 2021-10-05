@@ -26,9 +26,9 @@ func TestClient_ListenOrders(t *testing.T) {
 
 func TestClient_ListenTicker(t *testing.T) {
 	host := "wss://ws.bitso.com"
-	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(3 * time.Second))
+	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(5 * time.Second))
 	bc, err := new(host,
-		WithSubscriptionTo("eth_mxn", "trades"),
+		WithSubscriptionTo("btc_mxn", "trades"),
 	)
 
 	assert.Nil(t, err)
