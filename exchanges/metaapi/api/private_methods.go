@@ -136,6 +136,14 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		Volume:    math.Round(orderRequest.Quantity*100) / 100,
 	}
 
+	if orderRequest.TakeProfit != 0 {
+		request.TakeProfit = orderRequest.TakeProfit
+	}
+
+	if orderRequest.StopLoss != 0 {
+		request.StopLoss = orderRequest.StopLoss
+	}
+
 	switch orderRequest.Action {
 	case market.BuyAction:
 		if orderRequest.Type == market.MarketOrder {

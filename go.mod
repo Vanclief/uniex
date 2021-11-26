@@ -11,5 +11,5 @@ require (
 	github.com/spf13/viper v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vanclief/ez v1.1.3
-	github.com/vanclief/finmod v0.8.0
+	github.com/vanclief/finmod v0.8.7
 )

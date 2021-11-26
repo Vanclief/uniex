@@ -30,15 +30,17 @@ func TestGetOrders(t *testing.T) {
 
 func TestCreateOrder(t *testing.T) {
 
-	base := &market.Asset{Symbol: "BTC"}
-	quote := &market.Asset{Symbol: "USD"}
+	base := &market.Asset{Symbol: "US30"}
+	// quote := &market.Asset{Symbol: "USD"}
 
 	request := &market.OrderRequest{
-		Action:   market.BuyAction,
-		Type:     market.LimitOrder,
-		Pair:     &market.Pair{Base: base, Quote: quote},
-		Price:    50000,
-		Quantity: 0.111,
+		Action:     market.BuyAction,
+		Type:       market.LimitOrder,
+		Pair:       &market.Pair{Base: base},
+		Price:      35000,
+		TakeProfit: 35100,
+		StopLoss:   34800,
+		Quantity:   0.1,
 	}
 	response, err := metaAPI.CreateOrder(request)
 	assert.Nil(t, err)
