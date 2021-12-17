@@ -2,16 +2,17 @@ package ws
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClient_ListenOrders(t *testing.T) {
-	host := "wss://ws.bitso.com"
-	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(3 * time.Second))
+	host := "wss://wsv2.tauros.io"
+	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(3*time.Second))
 	bc, err := new(host,
-		WithSubscriptionTo("btc_usd", OrdersChannel),
+		WithSubscriptionTo("btc_mxn", OrdersChannel),
 	)
 
 	assert.Nil(t, err)
@@ -25,8 +26,8 @@ func TestClient_ListenOrders(t *testing.T) {
 }
 
 func TestClient_ListenTicker(t *testing.T) {
-	host := "wss://ws.bitso.com"
-	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(5 * time.Second))
+	host := "wss://wsv2.tauros.io"
+	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(100*time.Second))
 	bc, err := new(host,
 		WithSubscriptionTo("btc_mxn", TickerChannel),
 	)

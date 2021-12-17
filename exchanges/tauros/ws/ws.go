@@ -4,24 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
+
 	"github.com/gorilla/websocket"
 	log "github.com/inconshreveable/log15"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"sort"
-	"time"
 )
 
 type SubscribeConf struct {
-	Book string
-	Type channelType
+	Market  string
+	Channel channelType
 }
 
 type channelType string
 
 var (
-	OrdersChannel channelType = "orders"
-	TickerChannel channelType = "trades"
+	OrdersChannel channelType = "orderbook"
+	TickerChannel channelType = "ticker"
 )
 
 type baseClient struct {
@@ -37,8 +37,8 @@ func new(host string, opts ...Option) (*baseClient, error) {
 	c := &baseClient{
 		host: host,
 		subscription: &SubscribeConf{
-			Book: "btc_usd",
-			Type: "orders",
+			Market:  "BTC-MXN",
+			Channel: "orderbook",
 		},
 		buffer:            1000,
 		connectionRetries: 3,
@@ -72,11 +72,11 @@ func (c *baseClient) connect() error {
 }
 
 func (c *baseClient) subscribe() error {
-	op := "ws.subscribe"
+	op := "tauros.subscribe"
 	bytes, err := json.Marshal(&SubscriptionMessage{
-		Action: "subscribe",
-		Book:   c.subscription.Book,
-		Type:   string(c.subscription.Type),
+		Action:  "subscribe",
+		Channel: string(c.subscription.Channel),
+		Market:  c.subscription.Market,
 	})
 	if err != nil {
 		return ez.Wrap(op, err)
@@ -86,8 +86,8 @@ func (c *baseClient) subscribe() error {
 }
 
 func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook, error) {
-	op := "ws.ListenOrders"
-	if c.subscription.Type != OrdersChannel {
+	op := "tauros.ListenOrders"
+	if c.subscription.Channel != OrdersChannel {
 		return nil, ez.Wrap(op, errors.New("subscriptions type is not orders"))
 	}
 
@@ -107,7 +107,7 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 				}
 				order := Order{}
 				err = json.Unmarshal(bytes, &order)
-				if err != nil {
+				if err != nil || order.Channel != string(OrdersChannel) || order.Action == "subscribe" {
 					continue
 				}
 				orderBook := market.OrderBook{
@@ -116,15 +116,15 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 				}
 
 				var time int64
-				for _, bid := range order.Payload.Bids {
+				for _, bid := range order.Data.Bids {
 					orderRow, err := transformToOrderBookRow(&bid)
 					if err != nil {
 						log.Error("ws listen error", "op", op, "type", "transform", "error", err)
 						continue
 					}
 					orderBook.Bids = append(orderBook.Bids, *orderRow)
-					if time < bid.UnixTime {
-						time = bid.UnixTime
+					if time < bid.UnixMs {
+						time = bid.UnixMs
 					}
 				}
 
@@ -138,15 +138,15 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 					}
 				}
 
-				for _, ask := range order.Payload.Asks {
+				for _, ask := range order.Data.Asks {
 					orderRow, err := transformToOrderBookRow(&ask)
 					if err != nil {
 						log.Error("ws listen error", "op", op, "type", "transform", "error", err)
 						continue
 					}
 					orderBook.Asks = append(orderBook.Asks, *orderRow)
-					if time < ask.UnixTime {
-						time = ask.UnixTime
+					if time < ask.UnixMs {
+						time = ask.UnixMs
 					}
 				}
 
@@ -171,8 +171,8 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 }
 
 func (c *baseClient) ListenTicker(ctx context.Context) (<-chan market.Ticker, error) {
-	op := "ws.ListenTicker"
-	if c.subscription.Type != TickerChannel {
+	op := "tauros.ListenTicker"
+	if c.subscription.Channel != TickerChannel {
 		return nil, ez.Wrap(op, errors.New("subscriptions type is not trades"))
 	}
 
@@ -191,14 +191,14 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan market.Ticker, er
 					continue
 				}
 
-				tradeType := TradeType{}
-				err = json.Unmarshal(bytes, &tradeType)
-				if err != nil {
+				tick := Tick{}
+				err = json.Unmarshal(bytes, &tick)
+				if err != nil || tick.Channel != string(TickerChannel) || tick.Action == "subscribe" {
 					log.Error("ws listen error", "op", op, "type", "reading msg", "error", err)
 					continue
 				}
 
-				for _, trade := range tradeType.Payload {
+				for _, trade := range tick.Trades {
 					ticker := transformTradeToTicker(&trade)
 					chanMsgs <- *ticker
 				}
@@ -212,7 +212,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan market.Ticker, er
 
 func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 	orderRow := &market.OrderBookRow{
-		Price:       ba.Rate,
+		Price:       ba.Price,
 		Volume:      ba.Amount,
 		AccumVolume: 0,
 	}
@@ -221,13 +221,13 @@ func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 
 func transformTradeToTicker(ta *Trade) *market.Ticker {
 	buyOrSell := "buy"
-	if ta.Type == 1 {
+	if ta.Side == "SELL" {
 		buyOrSell = "sell"
 	}
 
 	ticker := &market.Ticker{
-		Time:   time.Now().UnixMilli(),
-		Last:   ta.Rate,
+		Time:   ta.Timestamp,
+		Last:   ta.Price,
 		Volume: ta.Value,
 		Side:   buyOrSell,
 	}
