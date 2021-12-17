@@ -18,12 +18,13 @@ func (f optionApplyFunc) applyOption(p *baseClient) error {
 	return f(p)
 }
 
-func WithSubscriptionTo(book string, kind subscriptionType) Option {
+func WithSubscriptionTo(market string, kind channelType) Option {
 	return optionApplyFunc(func(client *baseClient) error {
 		if kind != "orders" && kind != "diff-orders" && kind != "trades" {
 			return ErrUnknownSubscriptionType
 		}
-		client.subscription.Book = book
+
+		client.subscription.Book = market
 		client.subscription.Type = kind
 		return nil
 	})
