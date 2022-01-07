@@ -10,7 +10,7 @@ import (
 func TestClient_ListenOrders(t *testing.T) {
 	host := "wss://ws.bitso.com"
 	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(3 * time.Second))
-	bc, err := new(host,
+	bc, err := New(host,
 		WithSubscriptionTo("btc_usd", OrdersChannel),
 	)
 
@@ -27,7 +27,7 @@ func TestClient_ListenOrders(t *testing.T) {
 func TestClient_ListenTicker(t *testing.T) {
 	host := "wss://ws.bitso.com"
 	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(5 * time.Second))
-	bc, err := new(host,
+	bc, err := New(host,
 		WithSubscriptionTo("btc_mxn", TickerChannel),
 	)
 

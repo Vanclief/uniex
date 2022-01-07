@@ -33,7 +33,7 @@ type baseClient struct {
 	connectionRetries int
 }
 
-func new(host string, opts ...Option) (*baseClient, error) {
+func New(host string, opts ...Option) (*baseClient, error) {
 	c := &baseClient{
 		host: host,
 		subscription: &SubscribeConf{
