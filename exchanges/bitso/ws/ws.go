@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
+	"time"
+
 	"github.com/gorilla/websocket"
 	log "github.com/inconshreveable/log15"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"sort"
-	"time"
 )
 
 type SubscribeConf struct {
@@ -220,16 +221,11 @@ func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 }
 
 func transformTradeToTicker(ta *Trade) *market.Ticker {
-	buyOrSell := "buy"
-	if ta.Type == 1 {
-		buyOrSell = "sell"
-	}
 
 	ticker := &market.Ticker{
 		Time:   time.Now().UnixMilli(),
 		Last:   ta.Rate,
 		Volume: ta.Value,
-		Side:   buyOrSell,
 	}
 
 	return ticker

@@ -220,16 +220,11 @@ func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 }
 
 func transformTradeToTicker(ta *Trade) *market.Ticker {
-	buyOrSell := "buy"
-	if ta.Side == "SELL" {
-		buyOrSell = "sell"
-	}
 
 	ticker := &market.Ticker{
 		Time:   ta.Timestamp,
 		Last:   ta.Price,
 		Volume: ta.Value,
-		Side:   buyOrSell,
 	}
 
 	return ticker
