@@ -223,7 +223,7 @@ func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 func transformTradeToTicker(ta *Trade) *market.Ticker {
 
 	ticker := &market.Ticker{
-		Time:   time.Now().UnixMilli(),
+		Time:   time.Now().Unix(),
 		Last:   ta.Rate,
 		Volume: ta.Value,
 	}
