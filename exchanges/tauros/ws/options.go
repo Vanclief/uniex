@@ -2,7 +2,7 @@ package ws
 
 import (
 	"errors"
-	"fmt"
+	"github.com/vanclief/finmod/market"
 	"strings"
 )
 
@@ -21,17 +21,14 @@ func (f optionApplyFunc) applyOption(p *baseClient) error {
 	return f(p)
 }
 
-func WithSubscriptionTo(market string, channel channelType) Option {
+func WithSubscriptionTo(pair market.Pair) Option {
 	return optionApplyFunc(func(client *baseClient) error {
-		if channel != "orderbook" && channel != "ticker" && channel != "trades" {
-			return ErrUnknownSubscriptionType
+		subscriptionMessage := SubscriptionMessage{
+			Action: "subscribe",
+			Market: strings.ToUpper(pair.Symbol("-")),
 		}
-		tokens := strings.Split(market, "_")
-		if len(tokens) != 2 {
-			return ErrMarketFormatError
-		}
-		client.subscription.Channel = channel
-		client.subscription.Market = fmt.Sprintf("%s-%s", strings.ToUpper(tokens[0]), strings.ToUpper(tokens[1]))
+
+		client.subscription = append(client.subscription, subscriptionMessage)
 		return nil
 	})
 }

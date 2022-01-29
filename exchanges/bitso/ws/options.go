@@ -2,6 +2,8 @@ package ws
 
 import (
 	"errors"
+	"github.com/vanclief/finmod/market"
+	"strings"
 )
 
 var (
@@ -18,14 +20,14 @@ func (f optionApplyFunc) applyOption(p *baseClient) error {
 	return f(p)
 }
 
-func WithSubscriptionTo(market string, kind channelType) Option {
+func WithSubscriptionTo(pair market.Pair) Option {
 	return optionApplyFunc(func(client *baseClient) error {
-		if kind != "orders" && kind != "diff-orders" && kind != "trades" {
-			return ErrUnknownSubscriptionType
+		subscriptionMessage := SubscriptionMessage{
+			Action: "subscribe",
+			Book:   strings.ToLower(pair.Symbol("_")),
 		}
 
-		client.subscription.Book = market
-		client.subscription.Type = kind
+		client.subscription = append(client.subscription, subscriptionMessage)
 		return nil
 	})
 }

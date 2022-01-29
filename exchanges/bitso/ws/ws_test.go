@@ -3,6 +3,7 @@ package ws
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	"github.com/vanclief/finmod/market"
 	"testing"
 	"time"
 )
@@ -11,11 +12,26 @@ func TestClient_ListenOrders(t *testing.T) {
 	host := "wss://ws.bitso.com"
 	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(3 * time.Second))
 	bc, err := New(host,
-		WithSubscriptionTo("btc_usd", OrdersChannel),
+		WithSubscriptionTo(market.Pair{
+			Base:  &market.Asset{
+				Symbol: "BTC",
+			},
+			Quote: &market.Asset{
+				Symbol: "MXN",
+			},
+		}),
+		WithSubscriptionTo(market.Pair{
+			Base:  &market.Asset{
+				Symbol: "BTC",
+			},
+			Quote: &market.Asset{
+				Symbol: "USD",
+			},
+		}),
 	)
 
 	assert.Nil(t, err)
-	msgChan, err := bc.ListenOrders(cxt)
+	msgChan, err := bc.ListenOrderBook(cxt)
 	assert.Nil(t, err)
 
 	for msg := range msgChan {
@@ -28,7 +44,22 @@ func TestClient_ListenTicker(t *testing.T) {
 	host := "wss://ws.bitso.com"
 	cxt, _ := context.WithDeadline(context.Background(), time.Now().Add(5 * time.Second))
 	bc, err := New(host,
-		WithSubscriptionTo("btc_mxn", TickerChannel),
+		WithSubscriptionTo(market.Pair{
+			Base:  &market.Asset{
+				Symbol: "BTC",
+			},
+			Quote: &market.Asset{
+				Symbol: "MXN",
+			},
+		}),
+		WithSubscriptionTo(market.Pair{
+			Base:  &market.Asset{
+				Symbol: "BTC",
+			},
+			Quote: &market.Asset{
+				Symbol: "USD",
+			},
+		}),
 	)
 
 	assert.Nil(t, err)

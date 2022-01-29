@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"sort"
 	"time"
 
@@ -11,24 +10,12 @@ import (
 	log "github.com/inconshreveable/log15"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-)
-
-type SubscribeConf struct {
-	Book string
-	Type channelType
-}
-
-type channelType string
-
-var (
-	OrdersChannel channelType = "orders"
-	TickerChannel channelType = "trades"
+	"github.com/vanclief/uniex/exchanges/ws"
 )
 
 type baseClient struct {
 	host         string
-	wsClient     *websocket.Conn
-	subscription *SubscribeConf
+	subscription []SubscriptionMessage
 	// buffer for bursts or spikes in data
 	buffer            int
 	connectionRetries int
@@ -36,11 +23,8 @@ type baseClient struct {
 
 func New(host string, opts ...Option) (*baseClient, error) {
 	c := &baseClient{
-		host: host,
-		subscription: &SubscribeConf{
-			Book: "btc_usd",
-			Type: "orders",
-		},
+		host:              host,
+		subscription:      []SubscriptionMessage{},
 		buffer:            1000,
 		connectionRetries: 3,
 	}
@@ -50,12 +34,17 @@ func New(host string, opts ...Option) (*baseClient, error) {
 		}
 	}
 
+	return c, nil
+}
+
+func (c *baseClient) createClient(kind ws.ChannelType) (*websocket.Conn, error) {
 	var err error
+	var wsClient *websocket.Conn
 	for i := 0; i < c.connectionRetries; i++ {
-		err = c.connect()
+		wsClient, _, err = websocket.DefaultDialer.Dial(c.host, nil)
 		if err == nil {
 			for j := 0; j < c.connectionRetries; j++ {
-				err = c.subscribe()
+				err = c.subscribeTo(kind, wsClient)
 				if err == nil {
 					break
 				}
@@ -63,33 +52,29 @@ func New(host string, opts ...Option) (*baseClient, error) {
 			break
 		}
 	}
-	return c, err
+	return wsClient, err
 }
 
-func (c *baseClient) connect() error {
-	wsClient, _, err := websocket.DefaultDialer.Dial(c.host, nil)
-	c.wsClient = wsClient
-	return err
-}
-
-func (c *baseClient) subscribe() error {
-	op := "ws.subscribe"
-	bytes, err := json.Marshal(&SubscriptionMessage{
-		Action: "subscribe",
-		Book:   c.subscription.Book,
-		Type:   string(c.subscription.Type),
-	})
-	if err != nil {
-		return ez.Wrap(op, err)
+func (c *baseClient) subscribeTo(kind ws.ChannelType, ws *websocket.Conn) error {
+	for _, subMessage := range c.subscription {
+		subMessage.Type = channelType(kind).String()
+		bytes, err := json.Marshal(&subMessage)
+		if err != nil {
+			return err
+		}
+		ws.WriteMessage(websocket.TextMessage, bytes)
 	}
-	c.wsClient.WriteMessage(websocket.TextMessage, bytes)
+
 	return nil
 }
 
-func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook, error) {
+func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan market.OrderBook, error) {
 	op := "ws.ListenOrders"
-	if c.subscription.Type != OrdersChannel {
-		return nil, ez.Wrap(op, errors.New("subscriptions type is not orders"))
+
+
+	wsClient, cErr := c.createClient(ws.OrderBookChannel)
+	if cErr != nil {
+		return nil, ez.Wrap(op, cErr)
 	}
 
 	chanMsgs := make(chan market.OrderBook, c.buffer)
@@ -101,7 +86,7 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 				close(chanMsgs)
 				return
 			default:
-				_, bytes, err := c.wsClient.ReadMessage()
+				_, bytes, err := wsClient.ReadMessage()
 				if err != nil {
 					log.Error("ws listen error", "op", op, "type", "reading msg", "error", err)
 					continue
@@ -173,8 +158,10 @@ func (c *baseClient) ListenOrders(ctx context.Context) (<-chan market.OrderBook,
 
 func (c *baseClient) ListenTicker(ctx context.Context) (<-chan market.Ticker, error) {
 	op := "ws.ListenTicker"
-	if c.subscription.Type != TickerChannel {
-		return nil, ez.Wrap(op, errors.New("subscriptions type is not trades"))
+
+	wsClient, cErr := c.createClient(ws.TickerChannel)
+	if cErr != nil {
+		return nil, cErr
 	}
 
 	chanMsgs := make(chan market.Ticker, c.buffer)
@@ -186,7 +173,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan market.Ticker, er
 				close(chanMsgs)
 				return
 			default:
-				_, bytes, err := c.wsClient.ReadMessage()
+				_, bytes, err := wsClient.ReadMessage()
 				if err != nil {
 					log.Error("ws listen error", "op", op, "type", "reading msg", "error", err)
 					continue
@@ -221,11 +208,16 @@ func transformToOrderBookRow(ba *BidAsk) (*market.OrderBookRow, error) {
 }
 
 func transformTradeToTicker(ta *Trade) *market.Ticker {
+	//buyOrSell := "buy"
+	//if ta.Type == 1 {
+	//	buyOrSell = "sell"
+	//}
 
 	ticker := &market.Ticker{
-		Time:   time.Now().Unix(),
+		Time:   time.Now().UnixMilli(),
 		Last:   ta.Rate,
 		Volume: ta.Value,
+		//Side:   buyOrSell,
 	}
 
 	return ticker
