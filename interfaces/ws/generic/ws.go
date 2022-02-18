@@ -114,7 +114,7 @@ func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsC
 	}
 }
 
-// ListenOrderBook returns a channel with updates to the orderbook
+// ListenOrderBook returns a channel with updates to the order-book
 func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookChan, error) {
 	const op = "ws.ListenOrders"
 
@@ -137,7 +137,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				return
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
-				//fmt.Printf("\norderbook bytes: %s\n", string(bs[:10]))
+				//fmt.Printf("\norderbook bytes: %s\n", string(bs))
 				if bErr != nil {
 					log.Error().
 						Str("op", op).
@@ -153,7 +153,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 						Str("exchange", c.name).
 						Str("bytes", string(bs)).
 						Err(pErr).
-						Msg("error unmarshalling orderbook data from ws")
+						Msg("error unmarshalling order book data from ws")
 					continue
 				}
 
@@ -167,16 +167,17 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 	return chanMsgs, nil
 }
 
-// ListenOrderBook returns a channel with updates to the ticker
-func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, error) {
+// ListenTicker returns a channel with updates to the ticker
+func (c *baseClient) ListenTicker(ctx context.Context, channelType ChannelType) (<-chan ws.TickerChan, error) {
 	const op = "ws.ListenTicker"
 
 	if len(c.subscriptionPairs) == 0 {
 		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsConn, cErr := c.createConnection(ctx, ChannelTypeTicker)
+	wsConn, cErr := c.createConnection(ctx, channelType)
 	if cErr != nil {
+		fmt.Println("error here", cErr.Error())
 		return nil, ez.Wrap(op, cErr)
 	}
 

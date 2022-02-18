@@ -6,6 +6,7 @@ require (
 	github.com/Kucoin/kucoin-go-sdk v1.2.9-0.20210619025234-468026a33b3a
 	github.com/binance-exchange/go-binance v0.0.0-20180518133450-1af034307da5
 	github.com/go-kit/kit v0.10.0
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.0
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.8.0
