@@ -6,6 +6,13 @@ type SubscriptionMessage struct {
 	Type   string `json:"type"`
 }
 
+type SubscriptionResponse struct {
+	Action   string `json:"action"`
+	Response string `json:"response"`
+	Time     int64  `json:"time"`
+	Type     string `json:"type"`
+}
+
 type Type struct {
 	Type string `json:"type"`
 }

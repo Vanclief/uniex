@@ -1,7 +1,7 @@
 package api
 
 import (
-	bitsoClient "github.com/vanclief/uniex/exchanges/bitso/client"
+	bitsoClient "github.com/vanclief/uniex/platforms/trading/bitso/api/client"
 )
 
 type API struct {

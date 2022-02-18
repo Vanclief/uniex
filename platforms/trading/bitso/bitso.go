@@ -2,7 +2,6 @@ package bitso
 
 import (
 	"github.com/vanclief/ez"
-	"github.com/vanclief/uniex/interfaces/ws/generic"
 	"github.com/vanclief/uniex/platforms/trading/bitso/api"
 	"github.com/vanclief/uniex/types"
 )
@@ -18,11 +17,11 @@ func New(apiKey, secretKey string) (platform types.TradingPlatform, err error) {
 	}
 
 	// Create the WebSocket
-	dataWS, err := generic.New(host, parser, opts...)
+	// dataWS, err := generic.NewClient(parser, opts...)
 
 	platform.Name = "Bitso"
 	platform.DataAPI = dataAPI
-	platform.DataWS = dataWS
+	// platform.DataWS = dataWS
 
 	return platform, nil
 }

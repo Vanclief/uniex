@@ -1,4 +1,4 @@
-package krakenclient
+package client
 
 import (
 	"encoding/json"

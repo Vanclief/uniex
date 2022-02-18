@@ -17,8 +17,12 @@ var (
 	ChannelTypeTicker    ChannelType = "ticker"
 )
 
-type WebsocketParser interface {
+type SubscriptionRequest []byte
+
+type WebsocketHandler interface {
+	GetBaseEndpoint(pair []market.Pair) string
+	GetSubscriptionsRequests(pair []market.Pair, channelType ChannelType) ([]SubscriptionRequest, error)
+	VerifySubscriptionResponse(response []byte) error
 	ToTickers(in []byte) (*ws.TickerChan, error)
 	ToOrderBook(in []byte) (*ws.OrderBookChan, error)
-	GetSubscriptionRequest(pair market.Pair, channelType ChannelType) ([]byte, error)
 }

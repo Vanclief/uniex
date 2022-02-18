@@ -1,4 +1,4 @@
-package krakenclient
+package client
 
 import (
 	"testing"
@@ -7,30 +7,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var client *Client
+var krakenClient *Client
 
 func init() {
 	viper.AutomaticEnv()
 	apiKey := viper.GetString("KRAKEN_API_KEY")
 	secretKey := viper.GetString("KRAKEN_SECRET_KEY")
 
-	client = New(apiKey, secretKey)
+	krakenClient = New(apiKey, secretKey)
 }
 
 func TestGetAccountBalance(t *testing.T) {
-	balance, err := client.GetAccountBalance()
+	balance, err := krakenClient.GetAccountBalance()
 	assert.Nil(t, err)
 	assert.NotNil(t, balance)
 }
 
 func TestQueryOrders(t *testing.T) {
-	orders, err := client.QueryOrders("ONVGMR-BOKKK-HES7ZW")
+	orders, err := krakenClient.QueryOrders("ONVGMR-BOKKK-HES7ZW")
 	assert.Nil(t, err)
 	assert.NotNil(t, orders)
 }
 
 func TestGetDepositMethods(t *testing.T) {
-	methods, err := client.GetDepositMethods("XBT")
+	methods, err := krakenClient.GetDepositMethods("XBT")
 	assert.Nil(t, err)
 	assert.NotNil(t, methods)
 
@@ -44,7 +44,7 @@ func TestGetDepositMethods(t *testing.T) {
 
 func TestGetDepositAddresses(t *testing.T) {
 	// address, err := client.GetDepositAddresses("ETH", "Ether (Hex)")
-	address, err := client.GetDepositAddresses("XBT", "Bitcoin")
+	address, err := krakenClient.GetDepositAddresses("XBT", "Bitcoin")
 	assert.Nil(t, err)
 	assert.NotNil(t, address)
 }

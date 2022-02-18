@@ -3,17 +3,17 @@ package kraken
 import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	krakenclient "github.com/vanclief/uniex/exchanges/kraken/client"
+	"github.com/vanclief/uniex/platforms/trading/kraken/api/client"
 )
 
 // API - Kraken API
 type API struct {
-	Client *krakenclient.Client
+	Client *client.Client
 }
 
 func New(publicKey, secretKey string) (*API, error) {
-	client := krakenclient.New(publicKey, secretKey)
-	return &API{Client: client}, nil
+	c := client.New(publicKey, secretKey)
+	return &API{Client: c}, nil
 }
 
 func TranslateAsset(symbol string) (*market.Asset, error) {

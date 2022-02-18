@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges"
+	"github.com/vanclief/uniex/interfaces/api"
 )
 
 var binanceAPI *API
@@ -38,7 +38,7 @@ func TestGetOrderBook(t *testing.T) {
 	USD, _ := market.NewAsset("USDT", "Tether")
 
 	ETHUSD := market.NewPair(ETH, USD)
-	options := &exchanges.GetOrderBookOptions{Limit: 100}
+	options := &api.GetOrderBookOptions{Limit: 100}
 
 	orderBook, err := binanceAPI.GetOrderBook(ETHUSD, options)
 	assert.Nil(t, err)

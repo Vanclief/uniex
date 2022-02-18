@@ -5,7 +5,8 @@ import (
 	"fmt"
 
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges/ws"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/generic"
 )
 
 type parser struct{}
@@ -24,7 +25,7 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	return nil, nil
 }
 
-func (p parser) GetSubscriptionRequest(pair market.Pair, channelType ws.ChannelType) ([]byte, error) {
+func (p parser) GetSubscriptionRequest(pair market.Pair, channelType generic.ChannelType) ([]byte, error) {
 	subscriptionMessage := SubscriptionMessage{
 		Method: "SUBSCRIBE",
 		// Book:   strings.ToLower(pair.Symbol("_")),

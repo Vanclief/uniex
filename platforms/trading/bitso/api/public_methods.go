@@ -7,7 +7,7 @@ import (
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges"
+	"github.com/vanclief/uniex/interfaces/api"
 )
 
 func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
@@ -47,7 +47,7 @@ func (api *API) GetCurrentCandle(pair *market.Pair, timeframe int) (*market.Cand
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookOptions) (*market.OrderBook, error) {
+func (api *API) GetOrderBook(pair *market.Pair, options *api.GetOrderBookOptions) (*market.OrderBook, error) {
 	op := "bitso.GetOrderBook"
 	symbol := strings.ToLower(pair.Base.Symbol + "_" + pair.Quote.Symbol)
 	orderBook, err := api.Client.GetOrderBook(symbol)

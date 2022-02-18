@@ -6,8 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges/ws"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/generic"
 )
 
 const (
@@ -15,13 +17,13 @@ const (
 	tickerChannel = "trades"
 )
 
-type parser struct{}
+type bitsoHandler struct{}
 
-func NewParser() parser {
-	return parser{}
+func NewHandler() bitsoHandler {
+	return bitsoHandler{}
 }
 
-func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
@@ -34,7 +36,7 @@ func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, nil
 	}
 
-	pair, err := ws.ToMarketPair(tradeType.Book, "_")
+	pair, err := generic.ToMarketPair(tradeType.Book, "_")
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +52,7 @@ func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}, nil
 }
 
-func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
@@ -105,7 +107,7 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 
 	orderBook.Time = time
 
-	pair, err := ws.ToMarketPair(order.Book, "_")
+	pair, err := generic.ToMarketPair(order.Book, "_")
 	if err != nil {
 		return nil, err
 	}
@@ -115,18 +117,52 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, err
 }
 
-func (p parser) GetSubscriptionRequest(pair market.Pair, channelType ws.ChannelType) ([]byte, error) {
-	channel := ordersChannel
-	if channelType == ws.ChannelTypeTicker {
-		channel = tickerChannel
-	}
-	subscriptionMessage := SubscriptionMessage{
-		Action: "subscribe",
-		Book:   strings.ToLower(pair.Symbol("_")),
-		Type:   channel,
+func (h bitsoHandler) GetBaseEndpoint(pair []market.Pair) string {
+	return "wss://ws.bitso.com"
+}
+
+func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+	const op = "handler.GetSubscriptionRequests"
+
+	requests := make([]generic.SubscriptionRequest, 0, len(pairs))
+
+	for _, pair := range pairs {
+		channel := ordersChannel
+		if channelType == generic.ChannelTypeTicker {
+			channel = tickerChannel
+		}
+		subscriptionMessage := SubscriptionMessage{
+			Action: "subscribe",
+			Book:   strings.ToLower(pair.Symbol("_")),
+			Type:   channel,
+		}
+
+		request, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
+
+		requests = append(requests, request)
 	}
 
-	return json.Marshal(subscriptionMessage)
+	return requests, nil
+}
+
+func (h bitsoHandler) VerifySubscriptionResponse(in []byte) error {
+	const op = "bitsoHandler.VerifySubscriptionResponse"
+
+	response := &SubscriptionResponse{}
+
+	err := json.Unmarshal(in, &response)
+	if err != nil {
+		return ez.Wrap(op, err)
+	}
+
+	if response.Response != "ok" {
+		return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
+	}
+
+	return nil
 }
 
 func toOrderBookRow(ba BidAsk) market.OrderBookRow {

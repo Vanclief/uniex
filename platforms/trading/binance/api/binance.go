@@ -1,7 +1,7 @@
 package api
 
 import (
-	binanceclient "github.com/vanclief/uniex/exchanges/binance/client"
+	binanceclient "github.com/vanclief/uniex/platforms/trading/binance/api/client"
 )
 
 // API - Binance API

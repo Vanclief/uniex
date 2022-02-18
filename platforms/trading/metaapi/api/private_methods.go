@@ -6,8 +6,8 @@ import (
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges"
-	"github.com/vanclief/uniex/exchanges/metaapi/api/client"
+	"github.com/vanclief/uniex/interfaces/api"
+	"github.com/vanclief/uniex/platforms/trading/metaapi/api/client"
 )
 
 func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
@@ -34,12 +34,12 @@ func (api *API) GetAssets() (*market.AssetsSnashot, error) {
 }
 
 // GetOrders - Returns existing orders with their status
-func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, error) {
+func (api *API) GetOrders(request *api.GetOrdersRequest) ([]market.Order, error) {
 	const op = "MetaAPI.Orders"
 
 	orders := []market.Order{}
 
-	if request.Status == exchanges.ClosedStatus {
+	if request.Status == "closed" {
 		return nil, ez.New(op, ez.EINVALID, "This API only returns open orders", nil)
 	}
 
@@ -182,7 +182,7 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 	return order, nil
 }
 
-func (api *API) UpdateOrder(order *market.Order, request *exchanges.UpdateOrderRequest) (*market.Order, error) {
+func (api *API) UpdateOrder(order *market.Order, request *api.UpdateOrderRequest) (*market.Order, error) {
 	const op = "MetaAPI.UpdateOrder"
 
 	metaRequest := &client.MetatraderTrade{
@@ -236,17 +236,17 @@ func (api *API) CancelOrder(order *market.Order) (string, error) {
 	return response.OrderID, nil
 }
 
-func (api *API) GetTrades(request *exchanges.GetTradesRequest) ([]market.Trade, error) {
+func (api *API) GetTrades(request *api.GetTradesRequest) ([]market.Trade, error) {
 	const op = "MetaAPI.GetTrades"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.Position, error) {
+func (api *API) GetPositions(request *api.GetPositionsRequest) ([]market.Position, error) {
 	const op = "MetaAPI.GetPositions"
 
 	positions := []market.Position{}
 
-	if request.Status == exchanges.ClosedStatus {
+	if request.Status == "closed" {
 		return nil, ez.New(op, ez.EINVALID, "This API only returns open positions", nil)
 	}
 
@@ -325,7 +325,7 @@ func (api *API) GetPositions(request *exchanges.GetPositionsRequest) ([]market.P
 	return positions, nil
 }
 
-func (api *API) UpdatePosition(position *market.Position, request *exchanges.UpdatePositionRequest) (*market.Position, error) {
+func (api *API) UpdatePosition(position *market.Position, request *api.UpdatePositionRequest) (*market.Position, error) {
 	const op = "MetaAPI.UpdatePosition"
 
 	metaRequest := &client.MetatraderTrade{

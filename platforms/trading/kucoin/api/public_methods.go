@@ -7,7 +7,7 @@ import (
 	"github.com/Kucoin/kucoin-go-sdk"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges"
+	"github.com/vanclief/uniex/interfaces/api"
 )
 
 func (api *API) GetTicker(pair *market.Pair) (*market.Ticker, error) {
@@ -61,7 +61,7 @@ func (api *API) GetHistoricalData(pair *market.Pair, start, end time.Time, inter
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetOrderBook(pair *market.Pair, options *exchanges.GetOrderBookOptions) (*market.OrderBook, error) {
+func (api *API) GetOrderBook(pair *market.Pair, options *api.GetOrderBookOptions) (*market.OrderBook, error) {
 	const op = "kucoin.GetOrderBook"
 
 	symbol := pair.Base.Symbol + "-" + pair.Quote.Symbol

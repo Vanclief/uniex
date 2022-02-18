@@ -6,7 +6,7 @@ import (
 	goBinance "github.com/binance-exchange/go-binance"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges"
+	"github.com/vanclief/uniex/interfaces/api"
 	"github.com/vanclief/uniex/utils"
 	// 	"github.com/go-kit/kit/log"
 	// 	"github.com/go-kit/kit/log/level"
@@ -59,7 +59,7 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 		return nil, ez.New(op, ez.ENOTFOUND, "Candle array is empty", nil)
 	}
 
-	options := &exchanges.GetOrderBookOptions{Limit: 5}
+	options := &api.GetOrderBookOptions{Limit: 5}
 
 	ob, err := b.FetchOrderBook(pair, options)
 	if err != nil {
@@ -76,7 +76,7 @@ func (b Client) FetchTicker(pair string) (*market.Ticker, error) {
 	return ticker, nil
 }
 
-func (b Client) FetchOrderBook(pair string, options *exchanges.GetOrderBookOptions) (goBinance.OrderBook, error) {
+func (b Client) FetchOrderBook(pair string, options *api.GetOrderBookOptions) (goBinance.OrderBook, error) {
 	op := "binance.FetchOrderBook"
 
 	limit := 100 // The default limit from the API

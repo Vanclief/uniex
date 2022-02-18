@@ -7,26 +7,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges/ws"
+	"github.com/vanclief/uniex/interfaces/ws/generic"
 )
 
 func TestWebsocket(t *testing.T) {
 
-	host := "wss://stream.binance.com:9443/ws"
+	// host := "wss://stream.binance.com:9443/ws"
 
-	opts := []ws.Option{}
+	opts := []generic.Option{}
 
 	marketPair := market.Pair{
 		Base:  &market.Asset{Symbol: "BTC"},
 		Quote: &market.Asset{Symbol: "USDT"},
 	}
 
-	opts = append(opts, ws.WithSubscriptionTo(marketPair))
+	opts = append(opts, generic.WithSubscriptionTo(marketPair))
 
-	parser := NewParser()
+	handler := NewHandler()
 
-	opts = append(opts, ws.WithName("Binance"))
-	ws, err := ws.New(host, parser, opts...)
+	opts = append(opts, generic.WithName("Binance"))
+	ws, err := generic.NewClient(handler, opts...)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
