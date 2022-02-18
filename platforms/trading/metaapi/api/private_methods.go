@@ -7,7 +7,7 @@ import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/exchanges"
-	"github.com/vanclief/uniex/exchanges/metaapi/client"
+	"github.com/vanclief/uniex/exchanges/metaapi/api/client"
 )
 
 func (api *API) GetBalance() (*market.BalanceSnapshot, error) {

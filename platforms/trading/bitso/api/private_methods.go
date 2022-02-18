@@ -4,6 +4,7 @@ import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/exchanges"
+	"github.com/vanclief/uniex/interfaces/api"
 )
 
 func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
@@ -17,7 +18,7 @@ func (api *API) GetAssets() (*market.AssetsSnashot, error) {
 }
 
 // Orders
-func (api *API) GetOrders(request *exchanges.GetOrdersRequest) ([]market.Order, error) {
+func (api *API) GetOrders(request *api.GetOrdersRequest) ([]market.Order, error) {
 	const op = "bitso.GetOrders"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }

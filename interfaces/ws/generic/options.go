@@ -1,4 +1,4 @@
-package ws
+package generic
 
 import (
 	"github.com/vanclief/finmod/market"

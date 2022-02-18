@@ -1,24 +1,22 @@
-package exchanges
+package api
 
 import (
+	"time"
+
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/oracles"
 )
 
-// Exchange - An exchange or market data API
-type Exchange struct {
-	Name             string
-	API              ExchangeAPI
-	MakerFee         float64
-	TakerFee         float64
-	ManagedPositions bool
-	HedgingMode      bool
+// DataAPI - Unified interface for data APIs
+type DataAPI interface {
+	GetTicker(pair *market.Pair) (*market.Ticker, error)
+	GetCurrentCandle(pair *market.Pair, timeframe int) (*market.Candle, error)
+	GetHistoricalData(pair *market.Pair, start, end time.Time, interval int) ([]market.Candle, error)
+	// ListAssets() ([]market.Asset, error)
 }
 
-// ExchangeAPI - Interface for an unified exchange API
-type ExchangeAPI interface {
+// TradingAPI - Unified interface for broker and exchange APIs
+type TradingAPI interface {
 	// Public Endpoints
-	oracles.DataOracleAPI
 	GetOrderBook(pair *market.Pair, options *GetOrderBookOptions) (*market.OrderBook, error)
 
 	// Private Endpoints

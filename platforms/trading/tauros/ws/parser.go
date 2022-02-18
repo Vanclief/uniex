@@ -2,10 +2,12 @@ package ws
 
 import (
 	"encoding/json"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges/ws"
 	"sort"
 	"strings"
+
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/generic"
 )
 
 const (
@@ -13,7 +15,7 @@ const (
 	tickerChannel = "ticker"
 )
 
-type parser struct {}
+type parser struct{}
 
 func NewParser() parser {
 	return parser{}
@@ -29,7 +31,7 @@ func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, nil
 	}
 
-	pair, err := ws.ToMarketPair(tick.Market, "-")
+	pair, err := generic.ToMarketPair(tick.Market, "-")
 	if err != nil {
 		return nil, err
 	}
@@ -97,29 +99,28 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}
 	orderBook.Time = time
 
-	pair, err :=  ws.ToMarketPair(order.Type, "-")
+	pair, err := generic.ToMarketPair(order.Type, "-")
 	if err != nil {
 		return nil, err
 	}
 	return &ws.OrderBookChan{
-		Pair: pair,
+		Pair:      pair,
 		OrderBook: orderBook,
 	}, err
 }
 
-func (p parser) GetSubscriptionRequest(pair market.Pair, channelType ws.ChannelType) ([]byte, error) {
+func (p parser) GetSubscriptionRequest(pair market.Pair, channelType generic.ChannelType) ([]byte, error) {
 	channel := ordersChannel
-	if channelType == ws.ChannelTypeTicker {
+	if channelType == generic.ChannelTypeTicker {
 		channel = tickerChannel
 	}
 	subscriptionMessage := SubscriptionMessage{
-		Action: "subscribe",
-		Market: strings.ToUpper(pair.Symbol("-")),
+		Action:  "subscribe",
+		Market:  strings.ToUpper(pair.Symbol("-")),
 		Channel: channel,
 	}
 	return json.Marshal(subscriptionMessage)
 }
-
 
 func transformToOrderBookRow(ba BidAsk) market.OrderBookRow {
 	orderRow := market.OrderBookRow{

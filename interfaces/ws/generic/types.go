@@ -1,7 +1,8 @@
-package ws
+package generic
 
 import (
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
 )
 
 var (
@@ -17,17 +18,7 @@ var (
 )
 
 type WebsocketParser interface {
-	ToTickers(in []byte) (*TickerChan, error)
-	ToOrderBook(in []byte) (*OrderBookChan, error)
+	ToTickers(in []byte) (*ws.TickerChan, error)
+	ToOrderBook(in []byte) (*ws.OrderBookChan, error)
 	GetSubscriptionRequest(pair market.Pair, channelType ChannelType) ([]byte, error)
-}
-
-type TickerChan struct {
-	Pair  market.Pair
-	Ticks []market.Ticker
-}
-
-type OrderBookChan struct {
-	Pair      market.Pair
-	OrderBook market.OrderBook
 }

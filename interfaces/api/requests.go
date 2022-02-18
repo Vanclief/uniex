@@ -1,4 +1,4 @@
-package exchanges
+package api
 
 import "github.com/vanclief/finmod/market"
 

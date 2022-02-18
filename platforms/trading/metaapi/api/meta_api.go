@@ -1,7 +1,7 @@
 package api
 
 import (
-	metaAPIClient "github.com/vanclief/uniex/exchanges/metaapi/client"
+	metaAPIClient "github.com/vanclief/uniex/platforms/trading/metaapi/api/client"
 )
 
 type API struct {

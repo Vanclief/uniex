@@ -1,4 +1,4 @@
-package ws
+package generic
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
 )
 
 type baseClient struct {
@@ -78,7 +79,7 @@ func (c *baseClient) subscribeTo(channelType ChannelType, ws *websocket.Conn) er
 }
 
 // ListenOrderBook returns a channel with updates to the orderbook
-func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan, error) {
+func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookChan, error) {
 	const op = "ws.ListenOrders"
 
 	if len(c.subscriptionPairs) == 0 {
@@ -90,7 +91,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan,
 		return nil, ez.Wrap(op, err)
 	}
 
-	chanMsgs := make(chan OrderBookChan, c.buffer)
+	chanMsgs := make(chan ws.OrderBookChan, c.buffer)
 
 	go func() {
 		for {
@@ -131,7 +132,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan,
 }
 
 // ListenOrderBook returns a channel with updates to the ticker
-func (c *baseClient) ListenTicker(ctx context.Context) (<-chan TickerChan, error) {
+func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, error) {
 	const op = "ws.ListenTicker"
 
 	if len(c.subscriptionPairs) == 0 {
@@ -143,7 +144,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan TickerChan, error
 		return nil, ez.Wrap(op, cErr)
 	}
 
-	chanMsgs := make(chan TickerChan, c.buffer)
+	chanMsgs := make(chan ws.TickerChan, c.buffer)
 
 	go func() {
 		for {
