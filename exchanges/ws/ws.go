@@ -2,6 +2,8 @@ package ws
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/vanclief/ez"
@@ -12,37 +14,42 @@ type baseClient struct {
 	host              string
 	subscriptionPairs []market.Pair
 	parser            WebsocketParser
-	name string
+	name              string
 	// buffer for bursts or spikes in data
 	buffer            int
 	connectionRetries int
 }
 
 func New(host string, parser WebsocketParser, opts ...Option) (*baseClient, error) {
+	const op = "ws.New"
+
 	c := &baseClient{
 		host:              host,
 		subscriptionPairs: []market.Pair{},
-		parser: parser,
+		parser:            parser,
 		buffer:            1000,
 		connectionRetries: 3,
 	}
 	for _, opt := range opts {
 		if err := opt.applyOption(c); err != nil {
-			return nil, err
+			return nil, ez.Wrap(op, err)
 		}
 	}
 
 	return c, nil
 }
 
-func (c *baseClient) createClient(channelType ChannelType) (*websocket.Conn, error) {
+func (c *baseClient) createConnection(channelType ChannelType) (*websocket.Conn, error) {
+	const op = "baseClient.createConnection"
 	var err error
-	var wsClient *websocket.Conn
+	var wsConn *websocket.Conn
+
 	for i := 0; i < c.connectionRetries; i++ {
-		wsClient, _, err = websocket.DefaultDialer.Dial(c.host, nil)
+
+		wsConn, _, err = websocket.DefaultDialer.Dial(c.host, nil)
 		if err == nil {
 			for j := 0; j < c.connectionRetries; j++ {
-				err = c.subscribeTo(channelType, wsClient)
+				err = c.subscribeTo(channelType, wsConn)
 				if err == nil {
 					break
 				}
@@ -50,14 +57,19 @@ func (c *baseClient) createClient(channelType ChannelType) (*websocket.Conn, err
 			break
 		}
 	}
-	return wsClient, err
+
+	errMsg := fmt.Sprintf("Failed to connect to websocket: %s", err.Error())
+	return wsConn, ez.New(op, ez.EINTERNAL, errMsg, err)
 }
 
 func (c *baseClient) subscribeTo(channelType ChannelType, ws *websocket.Conn) error {
-	for _, mPair := range c.subscriptionPairs {
-		bs, err := c.parser.GetSubscriptionRequest(mPair, channelType)
+	const op = "baseClient.subscribeTo"
+
+	for _, pair := range c.subscriptionPairs {
+		bs, err := c.parser.GetSubscriptionRequest(pair, channelType)
 		if err != nil {
-			return err
+			msgErr := fmt.Sprintf("Error creating subscription request: %s", err.Error())
+			return ez.New(op, ez.EINTERNAL, msgErr, err)
 		}
 		ws.WriteMessage(websocket.TextMessage, bs)
 	}
@@ -65,16 +77,17 @@ func (c *baseClient) subscribeTo(channelType ChannelType, ws *websocket.Conn) er
 	return nil
 }
 
+// ListenOrderBook returns a channel with updates to the orderbook
 func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan, error) {
 	const op = "ws.ListenOrders"
 
 	if len(c.subscriptionPairs) == 0 {
-		return nil, ErrSubscriptionPairs
+		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsClient, cErr := c.createClient(ChannelTypeOrderBook)
-	if cErr != nil {
-		return nil, ez.Wrap(op, cErr)
+	wsConn, err := c.createConnection(ChannelTypeOrderBook)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
 	}
 
 	chanMsgs := make(chan OrderBookChan, c.buffer)
@@ -86,7 +99,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan,
 				close(chanMsgs)
 				return
 			default:
-				_, bs, bErr := wsClient.ReadMessage()
+				_, bs, bErr := wsConn.ReadMessage()
 				//fmt.Printf("\norderbook bytes: %s\n", string(bs[:10]))
 				if bErr != nil {
 					log.Error().
@@ -117,16 +130,17 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan OrderBookChan,
 	return chanMsgs, nil
 }
 
+// ListenOrderBook returns a channel with updates to the ticker
 func (c *baseClient) ListenTicker(ctx context.Context) (<-chan TickerChan, error) {
 	const op = "ws.ListenTicker"
 
 	if len(c.subscriptionPairs) == 0 {
-		return nil, ErrSubscriptionPairs
+		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsClient, cErr := c.createClient(ChannelTypeTicker)
+	wsConn, cErr := c.createConnection(ChannelTypeTicker)
 	if cErr != nil {
-		return nil, cErr
+		return nil, ez.Wrap(op, cErr)
 	}
 
 	chanMsgs := make(chan TickerChan, c.buffer)
@@ -138,7 +152,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan TickerChan, error
 				close(chanMsgs)
 				return
 			default:
-				_, bs, bErr := wsClient.ReadMessage()
+				_, bs, bErr := wsConn.ReadMessage()
 				//fmt.Printf("\nticker bytes%s\n", string(bs))
 				if bErr != nil {
 					log.Error().

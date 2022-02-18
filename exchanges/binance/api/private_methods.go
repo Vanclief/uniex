@@ -1,4 +1,4 @@
-package binance
+package api
 
 import (
 	"github.com/vanclief/ez"

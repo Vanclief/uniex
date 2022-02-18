@@ -1,4 +1,4 @@
-package binance
+package api
 
 import (
 	binanceclient "github.com/vanclief/uniex/exchanges/binance/client"

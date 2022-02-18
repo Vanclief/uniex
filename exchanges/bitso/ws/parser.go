@@ -2,11 +2,12 @@ package ws
 
 import (
 	"encoding/json"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/exchanges/ws"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/exchanges/ws"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	tickerChannel = "trades"
 )
 
-type parser struct {}
+type parser struct{}
 
 func NewParser() parser {
 	return parser{}
@@ -86,7 +87,7 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}
 
 	for _, ask := range order.Payload.Asks {
-		orderBook.Asks = append(orderBook.Asks,  toOrderBookRow(ask))
+		orderBook.Asks = append(orderBook.Asks, toOrderBookRow(ask))
 		if time < ask.UnixTime {
 			time = ask.UnixTime
 		}
@@ -104,12 +105,12 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 
 	orderBook.Time = time
 
-	pair, err :=  ws.ToMarketPair(order.Book, "_")
+	pair, err := ws.ToMarketPair(order.Book, "_")
 	if err != nil {
 		return nil, err
 	}
 	return &ws.OrderBookChan{
-		Pair: pair,
+		Pair:      pair,
 		OrderBook: orderBook,
 	}, err
 }
@@ -122,11 +123,11 @@ func (p parser) GetSubscriptionRequest(pair market.Pair, channelType ws.ChannelT
 	subscriptionMessage := SubscriptionMessage{
 		Action: "subscribe",
 		Book:   strings.ToLower(pair.Symbol("_")),
-		Type: channel,
+		Type:   channel,
 	}
+
 	return json.Marshal(subscriptionMessage)
 }
-
 
 func toOrderBookRow(ba BidAsk) market.OrderBookRow {
 	orderRow := market.OrderBookRow{
@@ -142,8 +143,6 @@ func toTicker(ta Trade) market.Ticker {
 		Time:   time.Now().UnixMilli(),
 		Last:   ta.Rate,
 		Volume: ta.Value,
-
 	}
 	return ticker
 }
-

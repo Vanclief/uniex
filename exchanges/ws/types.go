@@ -1,14 +1,12 @@
 package ws
 
 import (
-	"errors"
 	"github.com/vanclief/finmod/market"
 )
 
-
 var (
-	ErrUnknownSubscriptionType = errors.New("unknown subscription type")
-	ErrSubscriptionPairs = errors.New("at least one pair should be set")
+	ErrUnknownSubscriptionType = "Unkown subscription type"
+	ErrSubscriptionPairs       = "At least one subscription pair must be provided"
 )
 
 type ChannelType string
@@ -25,7 +23,7 @@ type WebsocketParser interface {
 }
 
 type TickerChan struct {
-	Pair   market.Pair
+	Pair  market.Pair
 	Ticks []market.Ticker
 }
 
