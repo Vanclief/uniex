@@ -3,10 +3,11 @@ package ws
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws/generic"
-	"testing"
 )
 
 func TestWs(t *testing.T) {
@@ -36,7 +37,7 @@ func TestWs(t *testing.T) {
 
 	ctx := context.Background()
 
-	tickerChannel, err := ws.ListenTicker(ctx, "ticker")
+	tickerChannel, err := ws.ListenTicker(ctx)
 	assert.Nil(t, err)
 
 	orderChannel, err := ws.ListenOrderBook(ctx)

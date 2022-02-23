@@ -19,6 +19,7 @@ type baseClient struct {
 	// buffer for bursts or spikes in data
 	buffer            int
 	connectionRetries int
+	timeout           time.Duration
 }
 
 func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
@@ -29,6 +30,7 @@ func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
 		handler:           handler,
 		buffer:            1000,
 		connectionRetries: 3,
+		timeout:           time.Second * 60,
 	}
 	for _, opt := range opts {
 		if err := opt.applyOption(c); err != nil {
@@ -127,13 +129,13 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 		return nil, ez.Wrap(op, err)
 	}
 
-	chanMsgs := make(chan ws.OrderBookChan, c.buffer)
+	orderBookChan := make(chan ws.OrderBookChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(chanMsgs)
+				close(orderBookChan)
 				return
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
@@ -158,39 +160,55 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				}
 
 				if orderBook != nil {
-					chanMsgs <- *orderBook
+					orderBookChan <- *orderBook
 				}
 			}
 		}
 	}()
 
-	return chanMsgs, nil
+	go func() {
+		for {
+			select {
+			case <-orderBookChan: // Required to reset the time.After
+			case <-time.After(c.timeout):
+				var err error
+				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
+				wsConn, err = c.createConnection(ctx, ChannelTypeTicker)
+				if err != nil {
+					log.Error().Err(err).Msg("Error attempting to recreate ticker connection")
+				}
+			}
+		}
+	}()
+
+	return orderBookChan, nil
 }
 
 // ListenTicker returns a channel with updates to the ticker
-func (c *baseClient) ListenTicker(ctx context.Context, channelType ChannelType) (<-chan ws.TickerChan, error) {
+func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, error) {
 	const op = "ws.ListenTicker"
 
 	if len(c.subscriptionPairs) == 0 {
 		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsConn, cErr := c.createConnection(ctx, channelType)
+	wsConn, cErr := c.createConnection(ctx, ChannelTypeTicker)
 	if cErr != nil {
-		fmt.Println("error here", cErr.Error())
 		return nil, ez.Wrap(op, cErr)
 	}
 
-	chanMsgs := make(chan ws.TickerChan, c.buffer)
+	tickerChan := make(chan ws.TickerChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(chanMsgs)
+				close(tickerChan)
 				return
+
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
+
 				//fmt.Printf("\nticker bytes%s\n", string(bs))
 				if bErr != nil {
 					log.Error().
@@ -213,11 +231,26 @@ func (c *baseClient) ListenTicker(ctx context.Context, channelType ChannelType) 
 				}
 
 				if tick != nil {
-					chanMsgs <- *tick
+					tickerChan <- *tick
 				}
 			}
 		}
 	}()
 
-	return chanMsgs, nil
+	go func() {
+		for {
+			select {
+			case <-tickerChan: // Required to reset the time.After
+			case <-time.After(c.timeout):
+				var err error
+				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
+				wsConn, err = c.createConnection(ctx, ChannelTypeTicker)
+				if err != nil {
+					log.Error().Err(err).Msg("Error attempting to recreate ticker connection")
+				}
+			}
+		}
+	}()
+
+	return tickerChan, nil
 }

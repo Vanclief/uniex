@@ -33,7 +33,7 @@ func TestWebsocket(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err = ws.ListenTicker(ctx, "ticker")
+	_, err = ws.ListenTicker(ctx)
 	ez.ErrorStacktrace(err)
 	assert.Nil(t, err)
 

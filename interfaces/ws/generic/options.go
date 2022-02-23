@@ -1,6 +1,8 @@
 package generic
 
 import (
+	"time"
+
 	"github.com/vanclief/finmod/market"
 )
 
@@ -24,6 +26,13 @@ func WithSubscriptionTo(pair market.Pair) Option {
 func WithName(name string) Option {
 	return optionApplyFunc(func(client *baseClient) error {
 		client.name = name
+		return nil
+	})
+}
+
+func SetTimeout(seconds int64) Option {
+	return optionApplyFunc(func(client *baseClient) error {
+		client.timeout = time.Duration(seconds) * time.Second
 		return nil
 	})
 }

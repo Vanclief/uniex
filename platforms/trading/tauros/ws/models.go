@@ -1,5 +1,7 @@
 package ws
 
+type SubscriptionResponse struct{}
+
 type SubscriptionMessage struct {
 	Action  string `json:"action"`
 	Market  string `json:"market"`

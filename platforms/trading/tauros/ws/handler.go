@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/generic"
@@ -15,13 +16,13 @@ const (
 	tickerChannel = "ticker"
 )
 
-type parser struct{}
+type TaurosHandler struct{}
 
-func NewParser() parser {
-	return parser{}
+func NewHandler() TaurosHandler {
+	return TaurosHandler{}
 }
 
-func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h TaurosHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
@@ -47,7 +48,7 @@ func (p parser) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}, nil
 }
 
-func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h TaurosHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
@@ -109,17 +110,55 @@ func (p parser) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, err
 }
 
-func (p parser) GetSubscriptionRequest(pair market.Pair, channelType generic.ChannelType) ([]byte, error) {
-	channel := ordersChannel
-	if channelType == generic.ChannelTypeTicker {
-		channel = tickerChannel
+func (h TaurosHandler) GetBaseEndpoint(pair []market.Pair) string {
+	return "wss://wsv2.tauros.io"
+}
+
+func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+	const op = "handler.GetSubscriptionRequests"
+
+	requests := make([]generic.SubscriptionRequest, 0, len(pairs))
+
+	for _, pair := range pairs {
+
+		channel := ordersChannel
+
+		if channelType == generic.ChannelTypeTicker {
+			channel = tickerChannel
+		}
+
+		subscriptionMessage := SubscriptionMessage{
+			Action:  "subscribe",
+			Market:  strings.ToUpper(pair.Symbol("-")),
+			Channel: channel,
+		}
+
+		request, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
+
+		requests = append(requests, request)
 	}
-	subscriptionMessage := SubscriptionMessage{
-		Action:  "subscribe",
-		Market:  strings.ToUpper(pair.Symbol("-")),
-		Channel: channel,
+
+	return requests, nil
+}
+
+func (h TaurosHandler) VerifySubscriptionResponse(in []byte) error {
+	const op = "TaurosHandler.VerifySubscriptionResponse"
+
+	response := &SubscriptionResponse{}
+
+	err := json.Unmarshal(in, &response)
+	if err != nil {
+		return ez.Wrap(op, err)
 	}
-	return json.Marshal(subscriptionMessage)
+
+	// if response.Response != "ok" {
+	// 	return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
+	// }
+
+	return nil
 }
 
 func transformToOrderBookRow(ba BidAsk) market.OrderBookRow {
