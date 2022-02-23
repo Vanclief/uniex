@@ -49,11 +49,12 @@ func TestWs(t *testing.T) {
 			return
 		case order, ok := <-orderChannel:
 			assert.True(t, ok)
-			fmt.Println("order", order.Pair.String(), order.OrderBook)
+			fmt.Println("order", order.Pair.String(), "Ask", order.OrderBook.Asks[0].Price, "Bid", order.OrderBook.Bids[0].Price)
 
 		case tick, ok := <-tickerChannel:
 			assert.True(t, ok)
-			fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+			assert.NotNil(t, tick)
+			fmt.Println("tick", tick.Pair.String(), tick.Ticks[0].Last)
 		}
 	}
 }

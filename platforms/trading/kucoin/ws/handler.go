@@ -44,10 +44,15 @@ func GetToken() (foundToken *Token, err error) {
 	if err != nil {
 		return nil, ez.New(op, ez.EINTERNAL, "error obtaining token", err)
 	}
+
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, ez.New(op, ez.EINTERNAL, "Error reading the response", err)
+	}
+
 	err = json.Unmarshal(body, &foundToken)
 	if err != nil {
-		return nil, ez.New(op, ez.EINTERNAL, "error parsing token", err)
+		return nil, ez.New(op, ez.EINTERNAL, "Error parsing the token", err)
 	}
 	return foundToken, nil
 }
