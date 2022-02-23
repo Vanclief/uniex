@@ -7,7 +7,7 @@ import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/generic"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -60,7 +60,7 @@ func (p Handler) GetBaseEndpoint(pair []market.Pair) string {
 	return fmt.Sprintf("%s?token=%s&connectId=%s", token.Data.InstanceServers[0].Endpoint, token.Data.Token, connectID)
 }
 
-func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "kucoin.GetSubscriptionsRequests"
 	var topic string
 	for _, v := range pair {
@@ -69,7 +69,7 @@ func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channelType generi
 	topic = topic[:len(topic)-1]
 	var subscriptionMessage SubscriptionMessageRequest
 	switch channelType {
-	case generic.ChannelTypeTicker:
+	case genericws.ChannelTypeTicker:
 		subscriptionMessage = SubscriptionMessageRequest{
 			ID:             1,
 			Type:           "subscribe",
@@ -77,7 +77,7 @@ func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channelType generi
 			PrivateChannel: false,
 			Response:       true,
 		}
-	case generic.ChannelTypeOrderBook:
+	case genericws.ChannelTypeOrderBook:
 		subscriptionMessage = SubscriptionMessageRequest{
 			ID:             1,
 			Type:           "subscribe",
@@ -92,7 +92,7 @@ func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channelType generi
 		return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription message", err)
 	}
 
-	return []generic.SubscriptionRequest{byteSubscriptionMessage}, nil
+	return []genericws.SubscriptionRequest{byteSubscriptionMessage}, nil
 }
 
 func (p Handler) VerifySubscriptionResponse(in []byte) error {
@@ -272,10 +272,10 @@ func NewHandler() Handler {
 	return Handler{}
 }
 
-func (p Handler) GetSubscriptionRequest(pair market.Pair, channelType generic.ChannelType) ([]byte, error) {
+func (p Handler) GetSubscriptionRequest(pair market.Pair, channelType genericws.ChannelType) ([]byte, error) {
 	var subscriptionMessage SubscriptionMessageRequest
 	switch channelType {
-	case generic.ChannelTypeTicker:
+	case genericws.ChannelTypeTicker:
 		subscriptionMessage = SubscriptionMessageRequest{
 			ID:             1,
 			Type:           "subscribe",
@@ -283,7 +283,7 @@ func (p Handler) GetSubscriptionRequest(pair market.Pair, channelType generic.Ch
 			PrivateChannel: false,
 			Response:       true,
 		}
-	case generic.ChannelTypeOrderBook:
+	case genericws.ChannelTypeOrderBook:
 		subscriptionMessage = SubscriptionMessageRequest{
 			ID:             1,
 			Type:           "subscribe",

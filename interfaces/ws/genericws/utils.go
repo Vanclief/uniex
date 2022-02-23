@@ -1,4 +1,4 @@
-package generic
+package genericws
 
 import (
 	"fmt"

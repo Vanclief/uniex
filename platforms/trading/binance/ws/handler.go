@@ -3,7 +3,7 @@ package ws
 import (
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/generic"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 type binanceHandler struct{}
@@ -24,14 +24,14 @@ func (h binanceHandler) GetBaseEndpoint(pair []market.Pair) string {
 	return "wss://ws.bitso.com"
 }
 
-func (h binanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+func (h binanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
-	requests := make([]generic.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
 	// for _, pair := range pairs {
 	// 	channel := ordersChannel
-	// 	if channelType == generic.ChannelTypeTicker {
+	// 	if channelType == genericws.ChannelTypeTicker {
 	// 		channel = tickerChannel
 	// 	}
 	// 	subscriptionMessage := SubscriptionMessage{

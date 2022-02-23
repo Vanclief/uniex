@@ -17,7 +17,7 @@ func New(apiKey, secretKey string) (platform types.TradingPlatform, err error) {
 	}
 
 	// Create the WebSocket
-	// dataWS, err := generic.NewClient(parser, opts...)
+	// dataWS, err := genericws.NewClient(parser, opts...)
 
 	platform.Name = "Bitso"
 	platform.DataAPI = dataAPI

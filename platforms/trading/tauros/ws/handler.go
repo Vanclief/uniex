@@ -8,7 +8,7 @@ import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/generic"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 const (
@@ -32,7 +32,7 @@ func (h TaurosHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, nil
 	}
 
-	pair, err := generic.ToMarketPair(tick.Market, "-")
+	pair, err := genericws.ToMarketPair(tick.Market, "-")
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (h TaurosHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}
 	orderBook.Time = time
 
-	pair, err := generic.ToMarketPair(order.Type, "-")
+	pair, err := genericws.ToMarketPair(order.Type, "-")
 	if err != nil {
 		return nil, err
 	}
@@ -114,16 +114,16 @@ func (h TaurosHandler) GetBaseEndpoint(pair []market.Pair) string {
 	return "wss://wsv2.tauros.io"
 }
 
-func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
-	requests := make([]generic.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
 	for _, pair := range pairs {
 
 		channel := ordersChannel
 
-		if channelType == generic.ChannelTypeTicker {
+		if channelType == genericws.ChannelTypeTicker {
 			channel = tickerChannel
 		}
 

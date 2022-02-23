@@ -9,7 +9,7 @@ import (
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/generic"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 const (
@@ -36,7 +36,7 @@ func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, nil
 	}
 
-	pair, err := generic.ToMarketPair(tradeType.Book, "_")
+	pair, err := genericws.ToMarketPair(tradeType.Book, "_")
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 
 	orderBook.Time = time
 
-	pair, err := generic.ToMarketPair(order.Book, "_")
+	pair, err := genericws.ToMarketPair(order.Book, "_")
 	if err != nil {
 		return nil, err
 	}
@@ -121,14 +121,14 @@ func (h bitsoHandler) GetBaseEndpoint(pair []market.Pair) string {
 	return "wss://ws.bitso.com"
 }
 
-func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType generic.ChannelType) ([]generic.SubscriptionRequest, error) {
+func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
-	requests := make([]generic.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
 	for _, pair := range pairs {
 		channel := ordersChannel
-		if channelType == generic.ChannelTypeTicker {
+		if channelType == genericws.ChannelTypeTicker {
 			channel = tickerChannel
 		}
 		subscriptionMessage := SubscriptionMessage{
