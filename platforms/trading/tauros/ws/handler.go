@@ -26,8 +26,10 @@ func (h TaurosHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
+
 	tick := Tick{}
 	err := json.Unmarshal(in, &tick)
+
 	if err != nil || tick.Channel != tickerChannel || tick.Action == "subscribe" {
 		return nil, nil
 	}
@@ -172,7 +174,7 @@ func transformToOrderBookRow(ba BidAsk) market.OrderBookRow {
 
 func transformTradeToTicker(ta Trade) market.Ticker {
 	ticker := market.Ticker{
-		Time:   ta.Timestamp,
+		Time:   int64(ta.Timestamp),
 		Last:   ta.Price,
 		Volume: ta.Value,
 	}

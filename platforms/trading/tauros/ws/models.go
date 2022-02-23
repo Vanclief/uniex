@@ -13,7 +13,7 @@ type Trade struct {
 	Value     float64 `json:"value,string"`
 	Price     float64 `json:"price,string"`
 	Side      string  `json:"side"`
-	Timestamp int64   `json:"timestamp"`
+	Timestamp float64 `json:"timestamp"`
 }
 
 type Tick struct {
@@ -24,7 +24,7 @@ type Tick struct {
 	High      string  `json:"high"`
 	Low       string  `json:"low"`
 	Last      string  `json:"last"`
-	Variation float64 `json:"variation,string"`
+	Variation float64 `json:"variation"`
 	Trades    []Trade `json:"trades"`
 }
 

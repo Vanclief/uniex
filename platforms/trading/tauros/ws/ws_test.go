@@ -21,7 +21,7 @@ func TestWebsocket(t *testing.T) {
 	}
 
 	ethMXN := market.Pair{
-		Base:  &market.Asset{Symbol: "ETH"},
+		Base:  &market.Asset{Symbol: "USDC"},
 		Quote: &market.Asset{Symbol: "MXN"},
 	}
 
@@ -37,7 +37,7 @@ func TestWebsocket(t *testing.T) {
 	assert.NotNil(t, ws)
 
 	// ctx := context.Background()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	tickerChannel, err := ws.ListenTicker(ctx)
