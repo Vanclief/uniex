@@ -129,13 +129,14 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 		return nil, ez.Wrap(op, err)
 	}
 
+	subChan := make(chan ws.OrderBookChan, c.buffer)
 	orderBookChan := make(chan ws.OrderBookChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(orderBookChan)
+				close(subChan)
 				return
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
@@ -160,7 +161,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				}
 
 				if orderBook != nil {
-					orderBookChan <- *orderBook
+					subChan <- *orderBook
 				}
 			}
 		}
@@ -169,7 +170,9 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 	go func() {
 		for {
 			select {
-			case <-orderBookChan: // Required to reset the time.After
+			case orderBook := <-subChan:
+				orderBookChan <- orderBook
+
 			case <-time.After(c.timeout):
 				var err error
 				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
@@ -197,13 +200,14 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 		return nil, ez.Wrap(op, cErr)
 	}
 
+	subChan := make(chan ws.TickerChan, c.buffer)
 	tickerChan := make(chan ws.TickerChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(tickerChan)
+				close(subChan)
 				return
 
 			default:
@@ -231,7 +235,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 				}
 
 				if tick != nil {
-					tickerChan <- *tick
+					subChan <- *tick
 				}
 			}
 		}
@@ -240,7 +244,9 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 	go func() {
 		for {
 			select {
-			case <-tickerChan: // Required to reset the time.After
+			case ticker := <-subChan:
+				tickerChan <- ticker
+
 			case <-time.After(c.timeout):
 				var err error
 				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
