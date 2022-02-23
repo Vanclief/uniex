@@ -3,17 +3,18 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/vanclief/ez"
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 type Handler struct{}
@@ -297,14 +298,21 @@ func (p Handler) GetSubscriptionRequest(pair market.Pair, channelType genericws.
 }
 
 func toTicker(ta TradeTypeData) market.Ticker {
+
+	priceFloat, err := strconv.ParseFloat(ta.Price, 64)
+	if err != nil {
+		priceFloat = 0
+	}
+
 	sizeFloat, err := strconv.ParseFloat(ta.Size, 64)
 	if err != nil {
 		sizeFloat = 0
 	}
+
 	ticker := market.Ticker{
 		Time:   time.Now().UnixMilli(),
-		Last:   sizeFloat,
-		Volume: 0,
+		Last:   priceFloat,
+		Volume: sizeFloat,
 	}
 	return ticker
 }
