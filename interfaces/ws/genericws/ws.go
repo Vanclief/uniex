@@ -142,24 +142,26 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				_, bs, bErr := wsConn.ReadMessage()
 				if _, ok := bErr.(*websocket.CloseError); ok {
 					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+					continue
 				}
 
 				//fmt.Printf("\norderbook bytes: %s\n", string(bs))
 				if bErr != nil {
 					log.Error().
-						Str("op", op).
-						Str("exchange", c.name).
+						Str("OP", op).
+						Str("Exchange", c.name).
 						Err(bErr).
-						Msg("error reading orderbook data from ws")
+						Msg("Error reading orderbook data from ws")
 					continue
 				}
-				orderBook, pErr := c.handler.ToOrderBook(bs)
-				if pErr != nil {
+
+				orderBook, err := c.handler.ToOrderBook(bs)
+				if err != nil {
 					log.Error().
-						Str("op", op).
+						Str("OP", op).
 						Str("exchange", c.name).
 						Str("bytes", string(bs)).
-						Err(pErr).
+						Err(err).
 						Msg("error unmarshalling order book data from ws")
 					continue
 				}
@@ -218,27 +220,28 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 				_, bs, bErr := wsConn.ReadMessage()
 				if _, ok := bErr.(*websocket.CloseError); ok {
 					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+					continue
 				}
 
 				//fmt.Printf("\nticker bytes%s\n", string(bs))
 				if bErr != nil {
 					log.Error().
-						Str("op", op).
-						Str("exchange", c.name).
+						Str("OP", op).
+						Str("Exchange", c.name).
 						Err(bErr).
-						Msg("error reading ticker data from ws")
+						Msg("Error reading ticker data from ws")
 					continue
 				}
 
-				tick, pErr := c.handler.ToTickers(bs)
+				tick, err := c.handler.ToTickers(bs)
 				//fmt.Printf("\ntick: %+v\n", tick)
-				if pErr != nil {
+				if err != nil {
 					log.Error().
-						Str("op", op).
-						Str("exchange", c.name).
-						Str("bytes", string(bs)).
-						Err(bErr).
-						Msg("error unmarshalling ticker data from ws")
+						Str("OP", op).
+						Str("Exchange", c.name).
+						Str("Bytes", string(bs)).
+						Err(err).
+						Msg("Err unmarshalling ticker data from ws")
 				}
 
 				if tick != nil {
