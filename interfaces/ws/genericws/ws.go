@@ -140,6 +140,10 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				return
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
+				if _, ok := bErr.(*websocket.CloseError); ok {
+					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+				}
+
 				//fmt.Printf("\norderbook bytes: %s\n", string(bs))
 				if bErr != nil {
 					log.Error().
@@ -212,6 +216,9 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 
 			default:
 				_, bs, bErr := wsConn.ReadMessage()
+				if _, ok := bErr.(*websocket.CloseError); ok {
+					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+				}
 
 				//fmt.Printf("\nticker bytes%s\n", string(bs))
 				if bErr != nil {
