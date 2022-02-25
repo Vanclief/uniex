@@ -2,8 +2,8 @@ package ws
 
 import (
 	"context"
-	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
@@ -36,25 +36,29 @@ func TestWebsocket(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	tickerChannel, err := ws.ListenTicker(ctx)
 	assert.Nil(t, err)
 
-	// orderChannel, err := ws.ListenOrderBook(ctx)
-	// assert.Nil(t, err)
+	orderChannel, err := ws.ListenOrderBook(ctx)
+	assert.Nil(t, err)
+	assert.Fail(t, "Test")
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		// case order, ok := <-orderChannel:
-		// assert.True(t, ok)
-		// fmt.Println("order", order.Pair.String(), order.OrderBook)
+		case order, ok := <-orderChannel:
+			assert.True(t, ok)
+			assert.NotNil(t, order)
+			// fmt.Println("order", order.Pair.String(), order.OrderBook)
 
 		case tick, ok := <-tickerChannel:
 			assert.True(t, ok)
-			fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+			assert.NotNil(t, tick)
+			// fmt.Println("tick", tick.Pair.String(), tick.Ticks)
 		}
 	}
 

@@ -24,9 +24,15 @@ func NewHandler() bitsoHandler {
 }
 
 func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
+
+	if !strings.Contains(string(in), "trades") {
+		return nil, nil
+	}
+
 	tradeType := TradeType{}
 	err := json.Unmarshal(in, &tradeType)
 	if err != nil {
@@ -53,9 +59,15 @@ func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 }
 
 func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+
 	if strings.Contains(string(in), "subscribe") {
 		return nil, nil
 	}
+
+	if !strings.Contains(string(in), "orders") {
+		return nil, nil
+	}
+
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
