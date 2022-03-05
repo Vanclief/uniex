@@ -46,7 +46,7 @@ func (c *baseClient) createConnection(ctx context.Context, channelType ChannelTy
 	var err error
 	var wsConn *websocket.Conn
 
-	baseEndpoint := c.handler.GetBaseEndpoint(c.subscriptionPairs)
+	baseEndpoint := c.handler.GetBaseEndpoint(c.subscriptionPairs, channelType)
 
 	for i := 0; i < c.connectionRetries; i++ {
 		wsConn, _, err = websocket.DefaultDialer.Dial(baseEndpoint, nil)

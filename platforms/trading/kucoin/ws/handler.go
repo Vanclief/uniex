@@ -3,18 +3,17 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/vanclief/ez"
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 type Handler struct{}
