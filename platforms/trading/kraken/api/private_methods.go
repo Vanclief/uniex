@@ -1,9 +1,6 @@
 package kraken
 
 import (
-	"reflect"
-	"time"
-
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/api"
@@ -14,37 +11,37 @@ func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetAssets() (*market.AssetsSnashot, error) {
+func (api *API) GetAssets() (market.Asset, error) {
 	const op = "kraken.GetAssets"
 
-	snapshot := &market.AssetsSnashot{
-		Time: float64(time.Now().Unix()),
+	snapshot := market.Asset{
+		// Time: float64(time.Now().Unix()),
 	}
 
-	krakenBalance, err := api.Client.GetAccountBalance()
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
+	// krakenBalance, err := api.Client.GetAccountBalance()
+	// if err != nil {
+	// 	return market.Asset{}, ez.Wrap(op, err)
+	// }
 
-	v := reflect.ValueOf(*krakenBalance)
+	// v := reflect.ValueOf(*krakenBalance)
 
-	for i := 0; i < v.NumField(); i++ {
+	// for i := 0; i < v.NumField(); i++ {
 
-		// Translate the asset from string to actual asset
-		assetName := v.Type().Field(i).Name
-		asset, err := TranslateAsset(assetName)
-		if err != nil {
-			continue
-		}
+	// 	// Translate the asset from string to actual asset
+	// 	assetName := v.Type().Field(i).Name
+	// 	asset, err := TranslateAsset(assetName)
+	// 	if err != nil {
+	// 		continue
+	// 	}
 
-		amount := v.Field(i).Interface().(float64)
-		if amount <= 0 {
-			continue
-		}
+	// 	amount := v.Field(i).Interface().(float64)
+	// 	if amount <= 0 {
+	// 		continue
+	// 	}
 
-		balance := &market.Balance{Asset: asset, Amount: amount}
-		snapshot.Assets = append(snapshot.Assets, *balance)
-	}
+	// 	balance := &market.Balance{Asset: asset, Amount: amount}
+	// 	snapshot.Assets = append(snapshot.Assets, *balance)
+	// }
 
 	return snapshot, nil
 }

@@ -3,14 +3,14 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"github.com/vanclief/uniex/utils"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type BinanceHandler struct{}
@@ -19,50 +19,39 @@ func NewHandler() BinanceHandler {
 	return BinanceHandler{}
 }
 
-func tickerToMarketTicker(sAsk, sBid, sLast, sBaseAssetVolume, sWeightedAveragePrice string, eventTime int64) market.Ticker {
-	ask, _ := strconv.ParseFloat(sAsk, 64)
-	bid, _ := strconv.ParseFloat(sBid, 64)
-	last, _ := strconv.ParseFloat(sLast, 64)
-	baseAssetVolume, _ := strconv.ParseFloat(sBaseAssetVolume, 64)
-	vwapNum, _ := strconv.ParseFloat(sWeightedAveragePrice, 64)
-	vwap := vwapNum / baseAssetVolume
+func tickerToMarketTicker(data BinanceTickerData) market.Ticker {
+	ask, _ := strconv.ParseFloat(data.BestAskPrice, 64)
+	bid, _ := strconv.ParseFloat(data.BestBidPrice, 64)
+	last, _ := strconv.ParseFloat(data.LastPrice, 64)
+
+	// baseAssetVolume, _ := strconv.ParseFloat(sBaseAssetVolume, 64)
+	// vwapNum, _ := strconv.ParseFloat(sWeightedAveragePrice, 64)
+	// vwap := vwapNum / baseAssetVolume
 
 	return market.Ticker{
-		Time:   eventTime,
-		Ask:    ask,
-		Bid:    bid,
-		Last:   last,
-		Volume: baseAssetVolume,
-		VWAP:   vwap,
+		Time: int64(data.EventTime),
+		Ask:  ask,
+		Bid:  bid,
+		Last: last,
+		// Volume: baseAssetVolume,
+		// VWAP:   vwap,
 	}
 }
 
-func pairStringToPairStruct(pair string) (market.Pair, error) {
+func pairStringToPairStruct(pairStr string) (market.Pair, error) {
 	const op = "BinanceHandler.pairStringToPairStruct"
-	var exchange utils.NeededInfo
-	for i := range utils.AllExchanges {
-		if utils.AllExchanges[i].Symbol == pair {
-			exchange = utils.AllExchanges[i]
-			break
-		}
+
+	pair, ok := market.PairMappings[pairStr]
+	if !ok {
+		return market.Pair{}, ez.New(op, ez.EINVALID, fmt.Sprintf("%s is not a valid exchange", pairStr), nil)
 	}
-	if exchange.Symbol == "" {
-		return market.Pair{}, ez.New(op, ez.EINVALID, fmt.Sprintf("%s is not a valid exchange", pair), nil)
-	}
-	return market.Pair{
-		Base: &market.Asset{
-			Symbol: exchange.Base,
-			Name:   exchange.Base,
-		},
-		Quote: &market.Asset{
-			Symbol: exchange.Quote,
-			Name:   exchange.Quote,
-		},
-	}, nil
+
+	return pair, nil
 }
 
 func (h BinanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	const op = "BinanceHandler.ToTickers"
+
 	payload := StreamTickerEvent{}
 	if strings.Contains(string(in), `"result"`) {
 		return nil, nil
@@ -73,11 +62,12 @@ func (h BinanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
-	marketTicker := tickerToMarketTicker(payload.Data.BestAskQuantity, payload.Data.BestBidQuantity, payload.Data.LastQuantity, payload.Data.BaseAssetVolume, payload.Data.WeightedAveragePrice, int64(payload.Data.EventTime))
+	marketTicker := tickerToMarketTicker(payload.Data)
 	pair, err := pairStringToPairStruct(payload.Data.Symbol)
 	if err != nil {
 		return nil, nil
 	}
+
 	ticks := []market.Ticker{marketTicker}
 	return &ws.TickerChan{
 		Pair:  pair,
@@ -101,6 +91,7 @@ func (h BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	bidPrice, _ := strconv.ParseFloat(payload.Data.BestBidPrice, 64)
 	askVolume, _ := strconv.ParseFloat(payload.Data.BestAskQuantity, 64)
 	bidVolume, _ := strconv.ParseFloat(payload.Data.BestBidQuantity, 64)
+
 	orderBook := market.OrderBook{
 		Time: time.Now().Unix(),
 		Asks: []market.OrderBookRow{{

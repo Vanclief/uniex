@@ -53,7 +53,7 @@ func TestPolygon_GetHistoricalDataStocks(t *testing.T) {
 			name: "should pass",
 			args: args{
 				pair: &market.Pair{
-					Base: &market.Asset{
+					Base: market.Asset{
 						Symbol: "AAPL",
 						Name:   "APPLE",
 					},
@@ -97,10 +97,10 @@ func TestPolygon_GetHistoricalDataForex(t *testing.T) {
 			name: "should pass",
 			args: args{
 				pair: &market.Pair{
-					Base: &market.Asset{
+					Base: market.Asset{
 						Symbol: "EUR",
 					},
-					Quote: &market.Asset{
+					Quote: market.Asset{
 						Symbol: "USD",
 					},
 				},
@@ -141,7 +141,7 @@ func TestPolygon_GetTicker(t *testing.T) {
 			name: "should pass",
 			args: args{
 				pair: &market.Pair{
-					Base: &market.Asset{
+					Base: market.Asset{
 						Symbol: "AAPL",
 						Name:   "APPLE",
 					},

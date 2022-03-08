@@ -15,13 +15,13 @@ func TestWs(t *testing.T) {
 	opts := []genericws.Option{}
 
 	btcMXN := market.Pair{
-		Base:  &market.Asset{Symbol: "BTC"},
-		Quote: &market.Asset{Symbol: "USDT"},
+		Base:  market.Asset{Symbol: "BTC"},
+		Quote: market.Asset{Symbol: "USDT"},
 	}
 
 	ethMXN := market.Pair{
-		Base:  &market.Asset{Symbol: "ETH"},
-		Quote: &market.Asset{Symbol: "USDT"},
+		Base:  market.Asset{Symbol: "ETH"},
+		Quote: market.Asset{Symbol: "USDT"},
 	}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btcMXN))

@@ -3,17 +3,18 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/interfaces/ws"
-	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/vanclief/ez"
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 type Handler struct{}
@@ -56,7 +57,7 @@ func GetToken() (foundToken *Token, err error) {
 	return foundToken, nil
 }
 
-func (p Handler) GetBaseEndpoint(pair []market.Pair) string {
+func (p Handler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
 	token, err := GetToken()
 	if err != nil {
 		return ""
@@ -127,11 +128,11 @@ func topicToMarketPair(topic string) (market.Pair, error) {
 		return market.Pair{}, ez.New(op, ez.EINTERNAL, "error parsing topic", nil)
 	}
 	return market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: baseQuote[0],
 			Name:   baseQuote[0],
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: baseQuote[1],
 			Name:   baseQuote[1],
 		},
@@ -177,11 +178,11 @@ func getPairFromKucoinOrder(topic string) (market.Pair, error) {
 	}
 	firstPair := strings.Split(pair[1], "-")
 	return market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: firstPair[0],
 			Name:   firstPair[0],
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: firstPair[1],
 			Name:   firstPair[1],
 		},

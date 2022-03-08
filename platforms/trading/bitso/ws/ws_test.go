@@ -15,13 +15,13 @@ func TestWebsocket(t *testing.T) {
 	opts := []genericws.Option{}
 
 	btcMXN := market.Pair{
-		Base:  &market.Asset{Symbol: "BTC"},
-		Quote: &market.Asset{Symbol: "MXN"},
+		Base:  market.Asset{Symbol: "BTC"},
+		Quote: market.Asset{Symbol: "MXN"},
 	}
 
 	ethMXN := market.Pair{
-		Base:  &market.Asset{Symbol: "ETH"},
-		Quote: &market.Asset{Symbol: "MXN"},
+		Base:  market.Asset{Symbol: "ETH"},
+		Quote: market.Asset{Symbol: "MXN"},
 	}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btcMXN))

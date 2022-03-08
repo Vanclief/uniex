@@ -16,7 +16,7 @@ func New(publicKey, secretKey string) (*API, error) {
 	return &API{Client: c}, nil
 }
 
-func TranslateAsset(symbol string) (*market.Asset, error) {
+func TranslateAsset(symbol string) (market.Asset, error) {
 	const op = "kraken.TranslateAsset"
 
 	asset, err := market.NewCryptoAsset(symbol)
@@ -36,6 +36,6 @@ func TranslateAsset(symbol string) (*market.Asset, error) {
 		return market.NewForexAsset("EUR")
 
 	default:
-		return nil, ez.New(op, ez.ENOTFOUND, "No asset with matching symbol found", nil)
+		return market.Asset{}, ez.New(op, ez.ENOTFOUND, "No asset with matching symbol found", nil)
 	}
 }

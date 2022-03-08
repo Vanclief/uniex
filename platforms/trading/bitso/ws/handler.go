@@ -129,7 +129,7 @@ func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, err
 }
 
-func (h bitsoHandler) GetBaseEndpoint(pair []market.Pair) string {
+func (h bitsoHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
 	return "wss://ws.bitso.com"
 }
 

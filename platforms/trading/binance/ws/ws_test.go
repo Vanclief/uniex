@@ -3,12 +3,12 @@ package ws
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/vanclief/finmod/market"
+	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
 func TestWebsocket(t *testing.T) {
@@ -16,13 +16,13 @@ func TestWebsocket(t *testing.T) {
 	opts := []genericws.Option{}
 
 	btc := market.Pair{
-		Base:  &market.Asset{Symbol: "BTC"},
-		Quote: &market.Asset{Symbol: "USDT"},
+		Base:  market.Asset{Symbol: "BTC"},
+		Quote: market.Asset{Symbol: "USDT"},
 	}
 
 	usd := market.Pair{
-		Base:  &market.Asset{Symbol: "ETH"},
-		Quote: &market.Asset{Symbol: "USDT"},
+		Base:  market.Asset{Symbol: "ETH"},
+		Quote: market.Asset{Symbol: "USDT"},
 	}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btc))
@@ -40,12 +40,11 @@ func TestWebsocket(t *testing.T) {
 	defer cancel()
 
 	tickerChannel, err := ws.ListenTicker(ctx)
-	ez.ErrorStacktrace(err)
 	assert.Nil(t, err)
 
 	orderChannel, err := ws.ListenOrderBook(ctx)
-	ez.ErrorStacktrace(err)
 	assert.Nil(t, err)
+	assert.Equal(t, "", "Test")
 
 	for {
 		select {
@@ -53,11 +52,12 @@ func TestWebsocket(t *testing.T) {
 			return
 		case order, ok := <-orderChannel:
 			assert.True(t, ok)
-			fmt.Println("tick", order.Pair.String(), order.OrderBook.Asks, order.OrderBook.Bids)
+			fmt.Println("order", order.Pair.String(), order.OrderBook.Asks, order.OrderBook.Bids)
 
 		case tick, ok := <-tickerChannel:
 			assert.True(t, ok)
 			fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+
 		}
 	}
 }

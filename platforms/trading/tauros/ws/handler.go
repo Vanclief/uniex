@@ -112,7 +112,7 @@ func (h TaurosHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, err
 }
 
-func (h TaurosHandler) GetBaseEndpoint(pair []market.Pair) string {
+func (h TaurosHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
 	return "wss://wsv2.tauros.io"
 }
 

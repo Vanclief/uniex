@@ -11,7 +11,7 @@ func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
 
-func (api *API) GetAssets() (*market.AssetsSnashot, error) {
+func (api *API) GetAssets() (*market.Asset, error) {
 	const op = "kucoin.GetAssets"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }

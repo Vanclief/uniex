@@ -27,7 +27,7 @@ func TestGetTicker(t *testing.T) {
 
 	ETHUSD := market.NewPair(ETH, USD)
 
-	ticker, err := binanceAPI.GetTicker(ETHUSD)
+	ticker, err := binanceAPI.GetTicker(&ETHUSD)
 	assert.Nil(t, err)
 	assert.NotNil(t, ticker)
 }
@@ -40,7 +40,7 @@ func TestGetOrderBook(t *testing.T) {
 	ETHUSD := market.NewPair(ETH, USD)
 	options := &api.GetOrderBookOptions{Limit: 100}
 
-	orderBook, err := binanceAPI.GetOrderBook(ETHUSD, options)
+	orderBook, err := binanceAPI.GetOrderBook(&ETHUSD, options)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }
@@ -55,7 +55,7 @@ func TestGetHistoricalData(t *testing.T) {
 
 	ETHUSDT := market.NewPair(ETH, USDT)
 
-	candles, err := binanceAPI.GetHistoricalData(ETHUSDT, start, end, 1)
+	candles, err := binanceAPI.GetHistoricalData(&ETHUSDT, start, end, 1)
 	assert.Nil(t, err)
 	assert.NotNil(t, candles)
 }

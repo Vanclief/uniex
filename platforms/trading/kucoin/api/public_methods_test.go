@@ -27,7 +27,7 @@ func TestGetTicker(t *testing.T) {
 
 	ETHUSDT := market.NewPair(ETH, USDT)
 
-	ticker, err := kucoinAPI.GetTicker(ETHUSDT)
+	ticker, err := kucoinAPI.GetTicker(&ETHUSDT)
 	assert.Nil(t, err)
 	assert.NotNil(t, ticker)
 }
@@ -40,7 +40,7 @@ func TestGetOrderBook(t *testing.T) {
 	ETHUSDT := market.NewPair(ETH, USDT)
 	options := &api.GetOrderBookOptions{Limit: 100}
 
-	orderBook, err := kucoinAPI.GetOrderBook(ETHUSDT, options)
+	orderBook, err := kucoinAPI.GetOrderBook(&ETHUSDT, options)
 	assert.Nil(t, err)
 	assert.NotNil(t, orderBook)
 }

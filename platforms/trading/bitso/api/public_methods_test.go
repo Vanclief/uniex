@@ -20,11 +20,11 @@ func init() {
 
 func TestGetTicker(t *testing.T) {
 	pair := &market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: "btc",
 			Name:   "Bitcoin",
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: "mxn",
 			Name:   "Mexican Peso",
 		},
@@ -36,11 +36,11 @@ func TestGetTicker(t *testing.T) {
 
 func TestAPI_GetOrderBook(t *testing.T) {
 	pair := &market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: "btc",
 			Name:   "Bitcoin",
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: "mxn",
 			Name:   "Mexican Peso",
 		},

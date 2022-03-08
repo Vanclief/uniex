@@ -30,13 +30,13 @@ func TestGetOrders(t *testing.T) {
 
 func TestCreateOrder(t *testing.T) {
 
-	base := &market.Asset{Symbol: "US30"}
-	// quote := &market.Asset{Symbol: "USD"}
+	base := market.Asset{Symbol: "US30"}
+	// quote := market.Asset{Symbol: "USD"}
 
 	request := &market.OrderRequest{
 		Action:     market.BuyAction,
 		Type:       market.LimitOrder,
-		Pair:       &market.Pair{Base: base},
+		Pair:       market.Pair{Base: base},
 		Price:      35000,
 		TakeProfit: 35100,
 		StopLoss:   34800,
@@ -51,13 +51,13 @@ func TestCreateOrder(t *testing.T) {
 
 func TestUpdateOrder(t *testing.T) {
 
-	base := &market.Asset{Symbol: "BTC"}
-	quote := &market.Asset{Symbol: "USD"}
+	base := market.Asset{Symbol: "BTC"}
+	quote := market.Asset{Symbol: "USD"}
 
 	request := &market.OrderRequest{
 		Action:   market.SellAction,
 		Type:     market.LimitOrder,
-		Pair:     &market.Pair{Base: base, Quote: quote},
+		Pair:     market.Pair{Base: base, Quote: quote},
 		Price:    50000,
 		Quantity: 0.1,
 	}
@@ -77,14 +77,14 @@ func TestUpdateOrder(t *testing.T) {
 
 func TestCancelOrder(t *testing.T) {
 
-	base := &market.Asset{Symbol: "BTC"}
-	quote := &market.Asset{Symbol: "USD"}
+	base := market.Asset{Symbol: "BTC"}
+	quote := market.Asset{Symbol: "USD"}
 
 	// Create the order
 	request := &market.OrderRequest{
 		Action:   market.SellAction,
 		Type:     market.LimitOrder,
-		Pair:     &market.Pair{Base: base, Quote: quote},
+		Pair:     market.Pair{Base: base, Quote: quote},
 		Price:    50000,
 		Quantity: 0.1,
 	}

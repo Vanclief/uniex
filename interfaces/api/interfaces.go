@@ -21,7 +21,7 @@ type TradingAPI interface {
 
 	// Private Endpoints
 	GetBalance() (*market.BalanceSnapshot, error)
-	GetAssets() (*market.AssetsSnashot, error)
+	GetAssets() (*market.Asset, error)
 
 	// Orders
 	GetOrders(request *GetOrdersRequest) ([]market.Order, error)

@@ -28,7 +28,7 @@ func (api *API) GetBalance() (*market.BalanceSnapshot, error) {
 	return balance, nil
 }
 
-func (api *API) GetAssets() (*market.AssetsSnashot, error) {
+func (api *API) GetAssets() (*market.Asset, error) {
 	const op = "MetaAPI.GetAssets"
 	return nil, ez.New(op, ez.ENOTIMPLEMENTED, "Not implemented", nil)
 }
@@ -172,7 +172,7 @@ func (api *API) CreateOrder(orderRequest *market.OrderRequest) (*market.Order, e
 		ID:       trade.OrderID,
 		Action:   orderRequest.Action,
 		Type:     orderRequest.Type,
-		Pair:     orderRequest.Pair,
+		Pair:     &orderRequest.Pair,
 		Price:    orderRequest.Price,
 		Volume:   request.Volume,
 		Status:   market.UnfilledOrder,
