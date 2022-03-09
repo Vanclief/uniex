@@ -74,7 +74,7 @@ func pairStringToMarketPair(in string) market.Pair {
 	}
 }
 
-func processTicker(in string) ([]market.Ticker, market.Pair, error) {
+func processTicker(in string) (*KrakenTickerContent, market.Pair, error) {
 	const op = "KrakenHandler.ToTickers.processTicker"
 	arrays := getTickerArrays(in)
 	if len(arrays) != 9 {
@@ -84,7 +84,7 @@ func processTicker(in string) ([]market.Ticker, market.Pair, error) {
 	pair := strings.Split(in, `"ticker",`)[1]
 	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
 
-	krakenTickerContent := KrakenTickerContent{
+	return &KrakenTickerContent{
 		AskPrice:       arrays[0],
 		BidPrice:       arrays[1],
 		ClosePrice:     arrays[2],
@@ -94,18 +94,7 @@ func processTicker(in string) ([]market.Ticker, market.Pair, error) {
 		LowPrice:       arrays[6],
 		HighPrice:      arrays[7],
 		OpenPrice:      arrays[8],
-	}
-
-	ticks := []market.Ticker{{
-		Time:   time.Now().Unix(),
-		Ask:    krakenTickerContent.AskPrice[0],
-		Bid:    krakenTickerContent.BidPrice[0],
-		Last:   0,
-		Volume: krakenTickerContent.Volume[0],
-		VWAP:   krakenTickerContent.VWAP[0],
-	},
-	}
-	return ticks, marketPair, nil
+	}, marketPair, nil
 }
 
 func processTrade(in string) (*TradeInfo, error) {
@@ -162,58 +151,30 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 		return nil, nil
 	}
 
-	//fmt.Println("to order book: ", string(in))
-	if strings.Contains(string(in), `"ticker"`) {
-		return nil, nil
-	} else {
-		startIndex, endIndex := strings.Index(string(in), `{`), strings.Index(string(in), `}`)
-		orderBookContent := string(in)[startIndex : endIndex+1]
-
-		var orderBookStruct KrakenOrderBookContent
-		err := json.Unmarshal([]byte(orderBookContent), &orderBookStruct)
-		if err != nil {
-			return nil, ez.New(op, ez.EINVALID, "invalid order book content", nil)
-		}
-
-		//fmt.Println("parsed order book: ", orderBookStruct.Asks, orderBookStruct.Bids, orderBookStruct.Checksum)
-		var askOBR market.OrderBookRow
-		var bidOBR market.OrderBookRow
-
-		if len(orderBookStruct.Asks) > 0 {
-			price, _ := strconv.ParseFloat(orderBookStruct.Asks[0][0], 64)
-			volume, _ := strconv.ParseFloat(orderBookStruct.Asks[0][1], 64)
-			askOBR = market.OrderBookRow{
-				Price:       price,
-				Volume:      volume,
-				AccumVolume: volume,
-			}
-		}
-
-		if len(orderBookStruct.Bids) > 0 {
-			price, _ := strconv.ParseFloat(orderBookStruct.Bids[0][0], 64)
-			volume, _ := strconv.ParseFloat(orderBookStruct.Bids[0][1], 64)
-			bidOBR = market.OrderBookRow{
-				Price:       price,
-				Volume:      volume,
-				AccumVolume: volume,
-			}
-		}
-
-		orderBook := market.OrderBook{
-			Asks: []market.OrderBookRow{askOBR},
-			Bids: []market.OrderBookRow{bidOBR},
-		}
-
-		pairStrArr := strings.Split(string(in), `,`)
-		pairStr := pairStrArr[len(pairStrArr)-1]
-		pairStr = strings.ReplaceAll(pairStr[:len(pairStr)-1], `"`, "")
-		marketPair := pairStringToMarketPair(pairStr)
-
-		return &ws.OrderBookChan{
-			Pair:      marketPair,
-			OrderBook: orderBook,
-		}, nil
+	krakenTicker, m, err := processTicker(string(in))
+	if err != nil {
+		return nil, ez.New(op, ez.EINVALID, "invalid ticker", err)
 	}
+	orderBook := market.OrderBook{
+		Bids: []market.OrderBookRow{
+			{
+				Price:       krakenTicker.BidPrice[0],
+				Volume:      krakenTicker.BidPrice[2],
+				AccumVolume: krakenTicker.BidPrice[2],
+			},
+		},
+		Asks: []market.OrderBookRow{
+			{
+				Price:       krakenTicker.AskPrice[0],
+				Volume:      krakenTicker.AskPrice[2],
+				AccumVolume: krakenTicker.AskPrice[2],
+			},
+		},
+	}
+	return &ws.OrderBookChan{
+		Pair:      m,
+		OrderBook: orderBook,
+	}, nil
 }
 
 func (h KrakenHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
