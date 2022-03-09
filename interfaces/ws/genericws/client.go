@@ -12,6 +12,11 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws"
 )
 
+const (
+	waitTimeForNewConn = 100 * time.Millisecond
+)
+
+
 type baseClient struct {
 	subscriptionPairs []market.Pair
 	handler           WebsocketHandler
@@ -23,7 +28,7 @@ type baseClient struct {
 }
 
 func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
-	const op = "ws.New"
+	const op = "ws.NewClient"
 
 	c := &baseClient{
 		subscriptionPairs: []market.Pair{},
@@ -41,37 +46,31 @@ func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
 	return c, nil
 }
 
-func (c *baseClient) createConnection(ctx context.Context, channelType ChannelType) (*websocket.Conn, error) {
+func (c *baseClient) createConnection(ctx context.Context, channelType ChannelType) (*wsConnHandler, error) {
 	const op = "baseClient.createConnection"
 	var err error
-	var wsConn *websocket.Conn
 
-	baseEndpoint := c.handler.GetBaseEndpoint(c.subscriptionPairs, channelType)
+	baseEndpoint := c.handler.GetBaseEndpoint(c.subscriptionPairs)
+	wsHandler := NewConnHandler(baseEndpoint, c.connectionRetries)
 
-	for i := 0; i < c.connectionRetries; i++ {
-		wsConn, _, err = websocket.DefaultDialer.Dial(baseEndpoint, nil)
-		if err == nil {
-			break
-		}
-	}
-
+	err = wsHandler.Connect()
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to dial websocket: %s", err.Error())
-		return wsConn, ez.New(op, ez.EINTERNAL, errMsg, err)
+		return wsHandler, ez.New(op, ez.EINTERNAL, errMsg, err)
 	}
 
 	for j := 0; j < c.connectionRetries; j++ {
-		err = c.subscribe(ctx, channelType, wsConn)
+		err = c.subscribe(ctx, channelType, wsHandler)
 		if err == nil {
-			return wsConn, nil
+			return wsHandler, nil
 		}
 	}
 
 	errMsg := fmt.Sprintf("Failed to subscribe to websocket channel: %s", err.Error())
-	return wsConn, ez.New(op, ez.EINTERNAL, errMsg, err)
+	return wsHandler, ez.New(op, ez.EINTERNAL, errMsg, err)
 }
 
-func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsConn *websocket.Conn) error {
+func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsConn *wsConnHandler) error {
 	const op = "baseClient.subscribe"
 
 	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs, channelType)
@@ -87,17 +86,21 @@ func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsC
 		}
 	}
 
+	expectedRequests := len(requests)
+	return c.verifySubscriptions(ctx, wsConn, expectedRequests)
+}
+
+func (c *baseClient) verifySubscriptions(ctx context.Context, wsConn *wsConnHandler, expectedRequest int) error {
+	const op = "baseClient.verifySubscriptions"
+
 	ctxDeadline, _ := context.WithTimeout(ctx, time.Second*5)
-
-	counter := len(requests)
-
 	for {
 		select {
 		case <-ctxDeadline.Done():
-			return ez.New(op, ez.EINTERNAL, "Failed to get subscription confirmations", nil)
+			return ez.New(op, ez.EINTERNAL, "failed to get subscription confirmations", nil)
 
 		default:
-			_, bs, err := wsConn.ReadMessage()
+			bs, err := wsConn.ReadMessage()
 			if err != nil {
 				return ez.Wrap(op, err)
 			}
@@ -107,16 +110,15 @@ func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsC
 				return ez.Wrap(op, err)
 			}
 
-			counter--
+			expectedRequest--
 
-			if counter == 0 {
+			if expectedRequest == 0 {
 				return nil
 			}
 		}
 	}
 }
 
-// ListenOrderBook returns a channel with updates to the order-book
 func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookChan, error) {
 	const op = "ws.ListenOrders"
 
@@ -129,23 +131,28 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 		return nil, ez.Wrap(op, err)
 	}
 
-	subChan := make(chan ws.OrderBookChan, c.buffer)
 	orderBookChan := make(chan ws.OrderBookChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(subChan)
+				close(orderBookChan)
 				return
 			default:
-				_, bs, bErr := wsConn.ReadMessage()
-				if _, ok := bErr.(*websocket.CloseError); ok {
-					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+				if wsConn.IsClose() {
+					time.Sleep(waitTimeForNewConn)
+					wsConn, _ = c.createConnection(ctx, ChannelTypeOrderBook)
+					if wsConn.IsClose() {
+						continue
+					}
+				}
+				bs, bErr := wsConn.ReadMessage()
+				if bErr != nil {
+					log.Printf("error reading message %s", bErr)
 					continue
 				}
 
-				//fmt.Printf("\norderbook bytes: %s\n", string(bs))
 				if bErr != nil {
 					log.Error().
 						Str("OP", op).
@@ -167,24 +174,7 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 				}
 
 				if orderBook != nil {
-					subChan <- *orderBook
-				}
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case orderBook := <-subChan:
-				orderBookChan <- orderBook
-
-			case <-time.After(c.timeout):
-				var err error
-				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
-				wsConn, err = c.createConnection(ctx, ChannelTypeTicker)
-				if err != nil {
-					log.Error().Err(err).Msg("Error attempting to recreate ticker connection")
+					orderBookChan <- *orderBook
 				}
 			}
 		}
@@ -193,7 +183,6 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 	return orderBookChan, nil
 }
 
-// ListenTicker returns a channel with updates to the ticker
 func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, error) {
 	const op = "ws.ListenTicker"
 
@@ -206,24 +195,28 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 		return nil, ez.Wrap(op, cErr)
 	}
 
-	subChan := make(chan ws.TickerChan, c.buffer)
 	tickerChan := make(chan ws.TickerChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(subChan)
+				close(tickerChan)
 				return
-
 			default:
-				_, bs, bErr := wsConn.ReadMessage()
-				if _, ok := bErr.(*websocket.CloseError); ok {
+				if wsConn.IsClose() {
+					time.Sleep(waitTimeForNewConn)
 					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
+					if wsConn.IsClose() {
+						continue
+					}
+				}
+				bs, bErr := wsConn.ReadMessage()
+				if bErr != nil {
+					log.Printf("error reading message %s", bErr)
 					continue
 				}
 
-				//fmt.Printf("\nticker bytes%s\n", string(bs))
 				if bErr != nil {
 					log.Error().
 						Str("OP", op).
@@ -234,7 +227,6 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 				}
 
 				tick, err := c.handler.ToTickers(bs)
-				//fmt.Printf("\ntick: %+v\n", tick)
 				if err != nil {
 					log.Error().
 						Str("OP", op).
@@ -245,24 +237,7 @@ func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, er
 				}
 
 				if tick != nil {
-					subChan <- *tick
-				}
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case ticker := <-subChan:
-				tickerChan <- ticker
-
-			case <-time.After(c.timeout):
-				var err error
-				log.Warn().Str("Name", c.name).Str("Channel", string(ChannelTypeTicker)).Msg("Websocket timed out, attempting to reconnect")
-				wsConn, err = c.createConnection(ctx, ChannelTypeTicker)
-				if err != nil {
-					log.Error().Err(err).Msg("Error attempting to recreate ticker connection")
+					tickerChan <- *tick
 				}
 			}
 		}
