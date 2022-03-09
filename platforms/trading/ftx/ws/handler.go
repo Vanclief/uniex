@@ -2,12 +2,13 @@ package ws
 
 import (
 	"encoding/json"
+	"strings"
+	"time"
+
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"strings"
-	"time"
 )
 
 type FTXHandler struct{}
@@ -17,7 +18,12 @@ func NewHandler() FTXHandler {
 }
 
 func ftxPairToMarketPair(rawPair string) market.Pair {
-	pair := strings.Split(rawPair, "-")
+	pair := strings.Split(rawPair, "/")
+
+	if len(pair) != 2 {
+		pair = strings.Split(rawPair, "-")
+	}
+
 	return market.Pair{
 		Base:  market.Asset{Symbol: pair[0]},
 		Quote: market.Asset{Symbol: pair[1]},
@@ -103,12 +109,20 @@ func (h FTXHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.Ch
 
 func (h FTXHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "FTXHandler.GetSubscriptionsRequests"
+
 	var subscriptions []genericws.SubscriptionRequest
+
 	for _, v := range pairs {
+
+		market := v.Symbol("/")
+		if v.Quote.Symbol == "PERP" {
+			market = v.Symbol("-")
+		}
+
 		subscriptionRequest := FTXSubscribeRequest{
 			Operation: "subscribe",
 			Channel:   string(channelType),
-			Market:    v.Symbol("-"),
+			Market:    market,
 		}
 		byteSubscription, err := json.Marshal(subscriptionRequest)
 		if err != nil {
@@ -116,6 +130,7 @@ func (h FTXHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType ge
 		}
 		subscriptions = append(subscriptions, byteSubscription)
 	}
+
 	return subscriptions, nil
 }
 

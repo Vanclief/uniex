@@ -3,11 +3,12 @@ package ws
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"testing"
-	"time"
 )
 
 func TestWebsocket(t *testing.T) {
@@ -18,13 +19,13 @@ func TestWebsocket(t *testing.T) {
 		Quote: market.Asset{Symbol: "PERP"},
 	}
 
-	//usd := market.Pair{
-	//	Base:  market.Asset{Symbol: "ETH"},
-	//	Quote: market.Asset{Symbol: "USD"},
-	//}
+	eth := market.Pair{
+		Base:  market.Asset{Symbol: "ETH"},
+		Quote: market.Asset{Symbol: "USDT"},
+	}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btc))
-	//opts = append(opts, genericws.WithSubscriptionTo(usd))
+	opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -42,7 +43,7 @@ func TestWebsocket(t *testing.T) {
 
 	orderChannel, err := ws.ListenOrderBook(ctx)
 	assert.Nil(t, err)
-	//assert.Equal(t, "", "Test")
+	assert.Equal(t, "", "Test")
 
 	for {
 		select {
