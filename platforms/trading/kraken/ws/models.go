@@ -38,3 +38,9 @@ type KrakenTickerContent struct {
 	HighPrice      []float64 `json:"h"`
 	OpenPrice      []float64 `json:"o"`
 }
+
+type KrakenOrderBookContent struct {
+	Asks     [][]string `json:"a"`
+	Bids     [][]string `json:"b"`
+	Checksum string     `json:"c"`
+}

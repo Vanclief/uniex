@@ -2,11 +2,11 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,6 +68,8 @@ func (h KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if len(arrays) != 9 {
 		return nil, ez.New(op, ez.EINVALID, "invalid ticker arrays length", nil)
 	}
+	pair := strings.Split(string(in), `"ticker",`)[1]
+	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
 	krakenTickerContent := KrakenTickerContent{
 		AskPrice:       arrays[0],
 		BidPrice:       arrays[1],
@@ -90,9 +92,6 @@ func (h KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	},
 	}
 
-	pair := strings.Split(string(in), `"ticker",`)[1]
-	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
-
 	return &ws.TickerChan{
 		Pair:  marketPair,
 		Ticks: ticks,
@@ -100,16 +99,65 @@ func (h KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 }
 
 func (h KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-	fmt.Println("ToOrderBook", string(in))
-	return nil, nil
+	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) || strings.Contains(string(in), `"as"`) {
+		return nil, nil
+	}
+	const op = "KrakenHandler.ToOrderBook"
+	startIndex, endIndex := strings.Index(string(in), `{`), strings.Index(string(in), `}`)
+	orderBookContent := string(in)[startIndex : endIndex+1]
+	var orderBookStruct KrakenOrderBookContent
+	err := json.Unmarshal([]byte(orderBookContent), &orderBookStruct)
+	if err != nil {
+		return nil, ez.New(op, ez.EINVALID, "invalid order book content", nil)
+	}
+	//fmt.Println("parsed order book: ", orderBookStruct.Asks, orderBookStruct.Bids, orderBookStruct.Checksum)
+	var askOBR market.OrderBookRow
+	var bidOBR market.OrderBookRow
+	if len(orderBookStruct.Asks) > 0 {
+		price, _ := strconv.ParseFloat(orderBookStruct.Asks[0][0], 64)
+		volume, _ := strconv.ParseFloat(orderBookStruct.Asks[0][1], 64)
+		askOBR = market.OrderBookRow{
+			Price:       price,
+			Volume:      volume,
+			AccumVolume: volume,
+		}
+	}
+	if len(orderBookStruct.Bids) > 0 {
+		price, _ := strconv.ParseFloat(orderBookStruct.Bids[0][0], 64)
+		volume, _ := strconv.ParseFloat(orderBookStruct.Bids[0][1], 64)
+		bidOBR = market.OrderBookRow{
+			Price:       price,
+			Volume:      volume,
+			AccumVolume: volume,
+		}
+	}
+	orderBook := market.OrderBook{
+		Asks: []market.OrderBookRow{askOBR},
+		Bids: []market.OrderBookRow{bidOBR},
+	}
+	pairStrArr := strings.Split(string(in), `,`)
+	pairStr := pairStrArr[len(pairStrArr)-1]
+	pairStr = strings.ReplaceAll(pairStr[:len(pairStr)-1], `"`, "")
+	marketPair := pairStringToMarketPair(pairStr)
+
+	return &ws.OrderBookChan{
+		Pair:      marketPair,
+		OrderBook: orderBook,
+	}, nil
 }
 
 func (h KrakenHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
 	return "wss://ws.kraken.com"
 }
 
-func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, _ genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channel genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "KrakenHandler.GetSubscriptionRequests"
+	var name string
+	if channel == "ticker" {
+		name = "ticker"
+	} else if channel == "orderbook" {
+		name = "book"
+	}
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 	pairsArray := make([]string, len(pairs))
 	for i, pair := range pairs {
@@ -119,7 +167,7 @@ func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, _ genericws
 		Event: "subscribe",
 		Pair:  pairsArray,
 		Subscription: KrakenSubscription{
-			Name: "ticker",
+			Name: name,
 		},
 	}
 	byteMessage, err := json.Marshal(subscriptionMessage)
