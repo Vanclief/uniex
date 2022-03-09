@@ -31,7 +31,7 @@ func TestWebsocket(t *testing.T) {
 	handler := NewHandler()
 
 	opts = append(opts, genericws.WithName("Kraken"))
-	ws, err := genericws.NewClient(handler, opts...)
+	ws, err := genericws.NewClient(&handler, opts...)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
@@ -39,23 +39,23 @@ func TestWebsocket(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// tickerChannel, err := ws.ListenTicker(ctx)
-	// assert.Nil(t, err)
-
-	orderChannel, err := ws.ListenOrderBook(ctx)
+	tickerChannel, err := ws.ListenTicker(ctx)
 	assert.Nil(t, err)
+
+	//orderChannel, err := ws.ListenOrderBook(ctx)
+	//assert.Nil(t, err)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case order, ok := <-orderChannel:
-			assert.True(t, ok)
-			fmt.Println("order", order.Pair.String(), order.OrderBook.Asks, order.OrderBook.Bids)
+			//case order, ok := <-orderChannel:
+			//	assert.True(t, ok)
+			//	//fmt.Println("order", order.Pair.String(), order.OrderBook.Asks, order.OrderBook.Bids)
 
-			// case tick, ok := <-tickerChannel:
-			// assert.True(t, ok)
-			// fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+		case tick, ok := <-tickerChannel:
+			assert.True(t, ok)
+			fmt.Println("tick", tick.Pair.String(), tick.Ticks)
 		}
 	}
 }
