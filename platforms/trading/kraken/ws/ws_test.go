@@ -20,13 +20,13 @@ func TestWebsocket(t *testing.T) {
 		Quote: market.Asset{Symbol: "USD"},
 	}
 
-	//usd := market.Pair{
-	//	Base:  market.Asset{Symbol: "ETH"},
-	//	Quote: market.Asset{Symbol: "USDT"},
-	//}
+	eth := market.Pair{
+		Base:  market.Asset{Symbol: "ETH"},
+		Quote: market.Asset{Symbol: "USD"},
+	}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btc))
-	//opts = append(opts, genericws.WithSubscriptionTo(usd))
+	opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -39,8 +39,8 @@ func TestWebsocket(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	//tickerChannel, err := ws.ListenTicker(ctx)
-	//assert.Nil(t, err)
+	// tickerChannel, err := ws.ListenTicker(ctx)
+	// assert.Nil(t, err)
 
 	orderChannel, err := ws.ListenOrderBook(ctx)
 	assert.Nil(t, err)
@@ -53,9 +53,9 @@ func TestWebsocket(t *testing.T) {
 			assert.True(t, ok)
 			fmt.Println("order", order.Pair.String(), order.OrderBook.Asks, order.OrderBook.Bids)
 
-			//case tick, ok := <-tickerChannel:
-			//	assert.True(t, ok)
-			//	fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+			// case tick, ok := <-tickerChannel:
+			// assert.True(t, ok)
+			// fmt.Println("tick", tick.Pair.String(), tick.Ticks)
 		}
 	}
 }

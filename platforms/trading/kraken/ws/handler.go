@@ -2,13 +2,14 @@ package ws
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type KrakenHandler struct{}
@@ -19,6 +20,7 @@ func NewHandler() KrakenHandler {
 
 func getTickerArrays(in string) [][]float64 {
 	startIndex := strings.Index(in, `{`)
+
 	var tickerContent string
 	for i := startIndex; i < len(in); i++ {
 		if in[i] == '}' {
@@ -26,7 +28,9 @@ func getTickerArrays(in string) [][]float64 {
 			break
 		}
 	}
+
 	splitByPoints := strings.Split(tickerContent, ":")
+
 	var arrays [][]float64
 	for _, v := range splitByPoints {
 		closingBracketIndex := strings.Index(v, "]")
@@ -42,6 +46,7 @@ func getTickerArrays(in string) [][]float64 {
 		}
 		arrays = append(arrays, arrayFloat)
 	}
+
 	return arrays
 }
 
@@ -58,18 +63,20 @@ func pairStringToMarketPair(in string) market.Pair {
 }
 
 func (h KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+	const op = "KrakenHandler.ToTickers"
+
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
 		return nil, nil
 	}
-
-	const op = "KrakenHandler.ToTickers"
 
 	arrays := getTickerArrays(string(in))
 	if len(arrays) != 9 {
 		return nil, ez.New(op, ez.EINVALID, "invalid ticker arrays length", nil)
 	}
+
 	pair := strings.Split(string(in), `"ticker",`)[1]
 	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
+
 	krakenTickerContent := KrakenTickerContent{
 		AskPrice:       arrays[0],
 		BidPrice:       arrays[1],
@@ -99,20 +106,25 @@ func (h KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 }
 
 func (h KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+	const op = "KrakenHandler.ToOrderBook"
+
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) || strings.Contains(string(in), `"as"`) {
 		return nil, nil
 	}
-	const op = "KrakenHandler.ToOrderBook"
+
 	startIndex, endIndex := strings.Index(string(in), `{`), strings.Index(string(in), `}`)
 	orderBookContent := string(in)[startIndex : endIndex+1]
+
 	var orderBookStruct KrakenOrderBookContent
 	err := json.Unmarshal([]byte(orderBookContent), &orderBookStruct)
 	if err != nil {
 		return nil, ez.New(op, ez.EINVALID, "invalid order book content", nil)
 	}
+
 	//fmt.Println("parsed order book: ", orderBookStruct.Asks, orderBookStruct.Bids, orderBookStruct.Checksum)
 	var askOBR market.OrderBookRow
 	var bidOBR market.OrderBookRow
+
 	if len(orderBookStruct.Asks) > 0 {
 		price, _ := strconv.ParseFloat(orderBookStruct.Asks[0][0], 64)
 		volume, _ := strconv.ParseFloat(orderBookStruct.Asks[0][1], 64)
@@ -122,6 +134,7 @@ func (h KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 			AccumVolume: volume,
 		}
 	}
+
 	if len(orderBookStruct.Bids) > 0 {
 		price, _ := strconv.ParseFloat(orderBookStruct.Bids[0][0], 64)
 		volume, _ := strconv.ParseFloat(orderBookStruct.Bids[0][1], 64)
@@ -131,10 +144,12 @@ func (h KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 			AccumVolume: volume,
 		}
 	}
+
 	orderBook := market.OrderBook{
 		Asks: []market.OrderBookRow{askOBR},
 		Bids: []market.OrderBookRow{bidOBR},
 	}
+
 	pairStrArr := strings.Split(string(in), `,`)
 	pairStr := pairStrArr[len(pairStrArr)-1]
 	pairStr = strings.ReplaceAll(pairStr[:len(pairStr)-1], `"`, "")
@@ -152,17 +167,21 @@ func (h KrakenHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws
 
 func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channel genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "KrakenHandler.GetSubscriptionRequests"
+
 	var name string
 	if channel == "ticker" {
 		name = "ticker"
 	} else if channel == "orderbook" {
 		name = "book"
 	}
-	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
+
+	requests := []genericws.SubscriptionRequest{}
 	pairsArray := make([]string, len(pairs))
+
 	for i, pair := range pairs {
 		pairsArray[i] = pair.String()[:len(pair.String())-1]
 	}
+
 	subscriptionMessage := KrakenSubscriptionRequest{
 		Event: "subscribe",
 		Pair:  pairsArray,
@@ -170,18 +189,22 @@ func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channel gen
 			Name: name,
 		},
 	}
-	byteMessage, err := json.Marshal(subscriptionMessage)
+
+	request, err := json.Marshal(subscriptionMessage)
 	if err != nil {
 		return nil, ez.New(op, ez.EINTERNAL, "Error parsing Subscription Message Request", err)
 	}
-	requests = append(requests, byteMessage)
+
+	requests = append(requests, request)
 	return requests, nil
 }
 
 func (h KrakenHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "KrakenHandler.VerifySubscriptionResponse"
+
 	if strings.Contains(string(in), `"status":"subscribed"`) {
 		return nil
 	}
+
 	return ez.New(op, ez.EINTERNAL, "Error subscribing to Kraken", nil)
 }
