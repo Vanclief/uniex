@@ -92,7 +92,7 @@ func (h MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, nil
 }
 
-func (h MEXCHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
+func (h MEXCHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
 	return "wss://contract.mexc.com/ws"
 }
 
