@@ -41,3 +41,8 @@ type Order struct {
 		Timestamp int64      `json:"timestamp"`
 	} `json:"data"`
 }
+
+type Type struct {
+	Subject string `json:"subject"`
+	Type    string `json:"type"`
+}

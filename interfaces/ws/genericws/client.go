@@ -14,17 +14,16 @@ import (
 
 const (
 	waitTimeForNewConn = 100 * time.Millisecond
+	connectionRetries  = 3
 )
-
 
 type baseClient struct {
 	subscriptionPairs []market.Pair
 	handler           WebsocketHandler
 	name              string
 	// buffer for bursts or spikes in data
-	buffer            int
-	connectionRetries int
-	timeout           time.Duration
+	buffer                        int
+	overrideExpectedVerifications int
 }
 
 func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
@@ -34,8 +33,6 @@ func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
 		subscriptionPairs: []market.Pair{},
 		handler:           handler,
 		buffer:            1000,
-		connectionRetries: 3,
-		timeout:           time.Second * 60,
 	}
 	for _, opt := range opts {
 		if err := opt.applyOption(c); err != nil {
@@ -46,36 +43,41 @@ func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
 	return c, nil
 }
 
-func (c *baseClient) createConnection(ctx context.Context, channelType ChannelType) (*wsConnHandler, error) {
+func (c *baseClient) createConnection(ctx context.Context) (*wsConnHandler, error) {
 	const op = "baseClient.createConnection"
 	var err error
 
-	baseEndpoint := c.handler.GetBaseEndpoint(c.subscriptionPairs)
-	wsHandler := NewConnHandler(baseEndpoint, c.connectionRetries)
+	settings, err := c.handler.GetSettings(c.subscriptionPairs)
+	if err != nil {
+		return nil, ez.New(op, ez.EINTERNAL, "", err)
+	}
+
+	wsHandler := NewConnHandler(settings.Endpoint, getOptionsFromSettings(settings))
+	c.overrideExpectedVerifications = settings.SubscriptionVerificationCount
 
 	err = wsHandler.Connect()
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to dial websocket: %s", err.Error())
+		errMsg := fmt.Sprintf("failed to dial websocket: %s", err.Error())
 		return wsHandler, ez.New(op, ez.EINTERNAL, errMsg, err)
 	}
 
-	for j := 0; j < c.connectionRetries; j++ {
-		err = c.subscribe(ctx, channelType, wsHandler)
+	for j := 0; j < connectionRetries; j++ {
+		err = c.subscribe(ctx, wsHandler)
 		if err == nil {
 			return wsHandler, nil
 		}
 	}
 
-	errMsg := fmt.Sprintf("Failed to subscribe to websocket channel: %s", err.Error())
+	errMsg := fmt.Sprintf("failed to subscribe to websocket channel: %s", err.Error())
 	return wsHandler, ez.New(op, ez.EINTERNAL, errMsg, err)
 }
 
-func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsConn *wsConnHandler) error {
+func (c *baseClient) subscribe(ctx context.Context, wsConn *wsConnHandler) error {
 	const op = "baseClient.subscribe"
 
-	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs, channelType)
+	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs)
 	if err != nil {
-		msgErr := fmt.Sprintf("Error creating subscription request: %s", err.Error())
+		msgErr := fmt.Sprintf("error creating subscription request: %s", err.Error())
 		return ez.New(op, ez.EINTERNAL, msgErr, err)
 	}
 
@@ -87,6 +89,9 @@ func (c *baseClient) subscribe(ctx context.Context, channelType ChannelType, wsC
 	}
 
 	expectedRequests := len(requests)
+	if c.overrideExpectedVerifications != 0 {
+		expectedRequests = c.overrideExpectedVerifications
+	}
 	return c.verifySubscriptions(ctx, wsConn, expectedRequests)
 }
 
@@ -119,35 +124,36 @@ func (c *baseClient) verifySubscriptions(ctx context.Context, wsConn *wsConnHand
 	}
 }
 
-func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookChan, error) {
-	const op = "ws.ListenOrders"
+func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
+	const op = "ws.Listen"
 
 	if len(c.subscriptionPairs) == 0 {
 		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsConn, err := c.createConnection(ctx, ChannelTypeOrderBook)
+	wsConn, err := c.createConnection(ctx)
 	if err != nil {
 		return nil, ez.Wrap(op, err)
 	}
 
-	orderBookChan := make(chan ws.OrderBookChan, c.buffer)
+	listenChan := make(chan ws.ListenChan, c.buffer)
 
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(orderBookChan)
+				close(listenChan)
 				return
 			default:
 				if wsConn.IsClose() {
 					time.Sleep(waitTimeForNewConn)
-					wsConn, _ = c.createConnection(ctx, ChannelTypeOrderBook)
+					wsConn, _ = c.createConnection(ctx)
 					if wsConn.IsClose() {
 						continue
 					}
 				}
 				bs, bErr := wsConn.ReadMessage()
+
 				if bErr != nil {
 					log.Printf("error reading message %s", bErr)
 					continue
@@ -162,86 +168,40 @@ func (c *baseClient) ListenOrderBook(ctx context.Context) (<-chan ws.OrderBookCh
 					continue
 				}
 
-				orderBook, err := c.handler.ToOrderBook(bs)
-				if err != nil {
+				data, pErr := c.handler.Parse(bs)
+				if pErr != nil {
 					log.Error().
 						Str("OP", op).
 						Str("exchange", c.name).
 						Str("bytes", string(bs)).
-						Err(err).
+						Err(pErr).
 						Msg("error unmarshalling order book data from ws")
 					continue
 				}
 
-				if orderBook != nil {
-					orderBookChan <- *orderBook
+				if data != nil {
+					listenChan <- *data
 				}
 			}
 		}
 	}()
 
-	return orderBookChan, nil
+	return listenChan, nil
 }
 
-func (c *baseClient) ListenTicker(ctx context.Context) (<-chan ws.TickerChan, error) {
-	const op = "ws.ListenTicker"
-
-	if len(c.subscriptionPairs) == 0 {
-		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
+func getOptionsFromSettings(settings Settings) Options {
+	opts := Options{
+		PingTimeInterval: pingTimeInterval,
+		PongWaitTime:     pongWaitTime,
 	}
 
-	wsConn, cErr := c.createConnection(ctx, ChannelTypeTicker)
-	if cErr != nil {
-		return nil, ez.Wrap(op, cErr)
+	if settings.PingTimeInterval > 0 {
+		opts.PingTimeInterval = settings.PingTimeInterval
 	}
 
-	tickerChan := make(chan ws.TickerChan, c.buffer)
+	if settings.PongWaitTime > 0 {
+		opts.PongWaitTime = settings.PongWaitTime
+	}
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				close(tickerChan)
-				return
-			default:
-				if wsConn.IsClose() {
-					time.Sleep(waitTimeForNewConn)
-					wsConn, _ = c.createConnection(ctx, ChannelTypeTicker)
-					if wsConn.IsClose() {
-						continue
-					}
-				}
-				bs, bErr := wsConn.ReadMessage()
-				if bErr != nil {
-					log.Printf("error reading message %s", bErr)
-					continue
-				}
-
-				if bErr != nil {
-					log.Error().
-						Str("OP", op).
-						Str("Exchange", c.name).
-						Err(bErr).
-						Msg("Error reading ticker data from ws")
-					continue
-				}
-
-				tick, err := c.handler.ToTickers(bs)
-				if err != nil {
-					log.Error().
-						Str("OP", op).
-						Str("Exchange", c.name).
-						Str("Bytes", string(bs)).
-						Err(err).
-						Msg("Err unmarshalling ticker data from ws")
-				}
-
-				if tick != nil {
-					tickerChan <- *tick
-				}
-			}
-		}
-	}()
-
-	return tickerChan, nil
+	return opts
 }

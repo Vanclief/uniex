@@ -1,6 +1,12 @@
 package ws
 
-type SubscriptionResponse struct{}
+type SubscriptionResponse struct {
+	Action   string `json:"action"`
+	Response string `json:"response"`
+	Time     int64  `json:"time"`
+	Channel  string `json:"channel"`
+	Market   string `json:"market"`
+}
 
 type SubscriptionMessage struct {
 	Action  string `json:"action"`
@@ -45,4 +51,8 @@ type Order struct {
 	Channel string `json:"channel"`
 	Type    string `json:"type"`
 	Data    Data   `json:"data"`
+}
+
+type Type struct {
+	Channel   string  `json:"channel"`
 }

@@ -1,25 +1,37 @@
 package genericws
 
 import (
-	"github.com/gorilla/websocket"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
-	pongWait           = 60 * time.Second
-	pingTimeInterval   = 1 * time.Second
+	pongWaitTime     = 60 * time.Second
+	pingTimeInterval = 1 * time.Second
+	connRetries      = 3
 )
 
 type wsConnHandler struct {
-	host        string
-	connRetries int
-	conn        *websocket.Conn
+	host string
+	conn *websocket.Conn
+	opts Options
 }
 
-func NewConnHandler(host string, connRetries int) *wsConnHandler {
+type Options struct {
+	PingTimeInterval time.Duration
+	PongWaitTime     time.Duration
+}
+
+var DefaultOptions = Options{
+	PingTimeInterval: pingTimeInterval,
+	PongWaitTime:     pongWaitTime,
+}
+
+func NewConnHandler(host string, opts Options) *wsConnHandler {
 	return &wsConnHandler{
-		host:        host,
-		connRetries: connRetries,
+		host: host,
+		opts: opts,
 	}
 }
 
@@ -28,7 +40,7 @@ func (w *wsConnHandler) Connect() error {
 	if !w.IsClose() {
 		w.Close()
 	}
-	for i := 0; i < w.connRetries; i++ {
+	for i := 0; i < connRetries; i++ {
 		w.conn, _, err = websocket.DefaultDialer.Dial(w.host, nil)
 		if err == nil {
 			break
@@ -36,8 +48,8 @@ func (w *wsConnHandler) Connect() error {
 	}
 	if w.conn != nil {
 		w.conn.SetPongHandler(func(appData string) error {
-			w.conn.SetReadDeadline(time.Now().Add(pongWait))
-			time.Sleep(pingTimeInterval)
+			w.conn.SetReadDeadline(time.Now().Add(w.opts.PongWaitTime))
+			time.Sleep(w.opts.PingTimeInterval)
 			return w.conn.WriteMessage(websocket.PingMessage, []byte{})
 		})
 		err = w.conn.WriteMessage(websocket.PingMessage, []byte{})

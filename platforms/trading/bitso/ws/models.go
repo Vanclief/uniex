@@ -15,6 +15,7 @@ type SubscriptionResponse struct {
 
 type Type struct {
 	Type string `json:"type"`
+	Book string `json:"book"`
 }
 
 type Trade struct {

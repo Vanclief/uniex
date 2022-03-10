@@ -23,26 +23,54 @@ func NewHandler() bitsoHandler {
 	return bitsoHandler{}
 }
 
-func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
-
-	if strings.Contains(string(in), "subscribe") {
-		return nil, nil
-	}
-
-	if !strings.Contains(string(in), "trades") {
-		return nil, nil
-	}
-
-	tradeType := TradeType{}
-	err := json.Unmarshal(in, &tradeType)
+func (h bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
+	t := Type{}
+	err := json.Unmarshal(in, &t)
 	if err != nil {
 		return nil, err
 	}
-	if tradeType.Type == "ka" {
-		return nil, nil
+
+	switch t.Type {
+	case "orders":
+		pair, mErr := genericws.ToMarketPair(t.Book, "_")
+		if mErr != nil {
+			return nil, mErr
+		}
+		ob, pErr := h.toOrderBook(in)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if ob != nil {
+			return &ws.ListenChan{
+				Type:      ws.OrderBookType,
+				Pair:      pair,
+				OrderBook: *ob,
+			}, nil
+		}
+	case "trades":
+		pair, mErr := genericws.ToMarketPair(t.Book, "_")
+		if mErr != nil {
+			return nil, mErr
+		}
+		ticks, pErr := h.toTickers(in)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if ticks != nil {
+			return &ws.ListenChan{
+				Type:  ws.TickerType,
+				Pair:  pair,
+				Ticks: ticks,
+			}, nil
+		}
 	}
 
-	pair, err := genericws.ToMarketPair(tradeType.Book, "_")
+	return nil, nil
+}
+
+func (h bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
+	tradeType := TradeType{}
+	err := json.Unmarshal(in, &tradeType)
 	if err != nil {
 		return nil, err
 	}
@@ -52,29 +80,14 @@ func (h bitsoHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		ticks = append(ticks, toTicker(trade))
 	}
 
-	return &ws.TickerChan{
-		Pair:  pair,
-		Ticks: ticks,
-	}, nil
+	return ticks, nil
 }
 
-func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-
-	if strings.Contains(string(in), "subscribe") {
-		return nil, nil
-	}
-
-	if !strings.Contains(string(in), "orders") {
-		return nil, nil
-	}
-
+func (h bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
 		return nil, err
-	}
-	if order.Type == "ka" {
-		return nil, nil
 	}
 
 	orderBook := market.OrderBook{
@@ -118,42 +131,30 @@ func (h bitsoHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}
 
 	orderBook.Time = time
-
-	pair, err := genericws.ToMarketPair(order.Book, "_")
-	if err != nil {
-		return nil, err
-	}
-	return &ws.OrderBookChan{
-		Pair:      pair,
-		OrderBook: orderBook,
-	}, err
+	return &orderBook, nil
 }
 
-func (h bitsoHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
-	return "wss://ws.bitso.com"
+func (h bitsoHandler) GetSettings(pair []market.Pair) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://ws.bitso.com",
+	}, nil
 }
 
-func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
-
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
 	for _, pair := range pairs {
-		channel := ordersChannel
-		if channelType == genericws.ChannelTypeTicker {
-			channel = tickerChannel
-		}
-		subscriptionMessage := SubscriptionMessage{
-			Action: "subscribe",
-			Book:   strings.ToLower(pair.Symbol("_")),
-			Type:   channel,
-		}
-
-		request, err := json.Marshal(subscriptionMessage)
+		request, err := getRequest(pair, ordersChannel)
 		if err != nil {
 			return nil, ez.Wrap(op, err)
 		}
+		requests = append(requests, request)
 
+		request, err = getRequest(pair, tickerChannel)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 		requests = append(requests, request)
 	}
 
@@ -162,7 +163,6 @@ func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType 
 
 func (h bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "bitsoHandler.VerifySubscriptionResponse"
-
 	response := &SubscriptionResponse{}
 
 	err := json.Unmarshal(in, &response)
@@ -171,7 +171,7 @@ func (h bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	if response.Response != "ok" {
-		return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
+		return ez.New(op, ez.EINTERNAL, "error on verify subscription response", nil)
 	}
 
 	return nil
@@ -193,4 +193,19 @@ func toTicker(ta Trade) market.Ticker {
 		Volume: ta.Value,
 	}
 	return ticker
+}
+
+func getRequest(pair market.Pair, channel string) ([]byte, error) {
+	subscriptionMessage := SubscriptionMessage{
+		Action: "subscribe",
+		Book:   strings.ToLower(pair.Symbol("_")),
+		Type:   channel,
+	}
+
+	request, err := json.Marshal(subscriptionMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return request, nil
 }

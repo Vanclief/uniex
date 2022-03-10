@@ -5,9 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/vanclief/uniex/interfaces/ws"
+
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
-	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
@@ -22,21 +23,53 @@ func NewHandler() TaurosHandler {
 	return TaurosHandler{}
 }
 
-func (h TaurosHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
-	if strings.Contains(string(in), "subscribe") {
-		return nil, nil
+func (h TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
+	t := Type{}
+	err := json.Unmarshal(in, &t)
+	if err != nil {
+		return nil, err
 	}
 
+	switch t.Channel {
+	case "orderbook":
+		ob, pair, pErr := h.toOrderBook(in)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if ob != nil {
+			return &ws.ListenChan{
+				Type:      ws.OrderBookType,
+				Pair:      *pair,
+				OrderBook: *ob,
+			}, nil
+		}
+	case "ticker":
+		ticks, pair, pErr := h.toTickers(in)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if ticks != nil {
+			return &ws.ListenChan{
+				Type:  ws.TickerType,
+				Pair:  *pair,
+				Ticks: ticks,
+			}, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (h TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	tick := Tick{}
 	err := json.Unmarshal(in, &tick)
-
-	if err != nil || tick.Channel != tickerChannel || tick.Action == "subscribe" {
-		return nil, nil
+	if err != nil {
+		return nil, nil, err
 	}
 
 	pair, err := genericws.ToMarketPair(tick.Market, "-")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ticks := make([]market.Ticker, 0, len(tick.Trades))
@@ -44,20 +77,14 @@ func (h TaurosHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		ticks = append(ticks, transformTradeToTicker(trade))
 	}
 
-	return &ws.TickerChan{
-		Pair:  pair,
-		Ticks: ticks,
-	}, nil
+	return ticks, &pair, nil
 }
 
-func (h TaurosHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-	if strings.Contains(string(in), "subscribe") {
-		return nil, nil
-	}
+func (h TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
-	if err != nil || order.Channel != ordersChannel || order.Action == "subscribe" {
-		return nil, nil
+	if err != nil {
+		return nil, nil, err
 	}
 	orderBook := market.OrderBook{
 		Asks: []market.OrderBookRow{},
@@ -104,42 +131,32 @@ func (h TaurosHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 
 	pair, err := genericws.ToMarketPair(order.Type, "-")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &ws.OrderBookChan{
-		Pair:      pair,
-		OrderBook: orderBook,
-	}, err
+	return &orderBook, &pair, nil
 }
 
-func (h TaurosHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
-	return "wss://wsv2.tauros.io"
+func (h TaurosHandler) GetSettings(pair []market.Pair) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://wsv2.tauros.io",
+	}, nil
 }
 
-func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
-
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
 	for _, pair := range pairs {
-
-		channel := ordersChannel
-
-		if channelType == genericws.ChannelTypeTicker {
-			channel = tickerChannel
-		}
-
-		subscriptionMessage := SubscriptionMessage{
-			Action:  "subscribe",
-			Market:  strings.ToUpper(pair.Symbol("-")),
-			Channel: channel,
-		}
-
-		request, err := json.Marshal(subscriptionMessage)
+		request, err := getRequest(pair, ordersChannel)
 		if err != nil {
 			return nil, ez.Wrap(op, err)
 		}
+		requests = append(requests, request)
 
+		request, err = getRequest(pair, tickerChannel)
+		if err != nil {
+			return nil, ez.Wrap(op, err)
+		}
 		requests = append(requests, request)
 	}
 
@@ -148,7 +165,6 @@ func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType
 
 func (h TaurosHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "TaurosHandler.VerifySubscriptionResponse"
-
 	response := &SubscriptionResponse{}
 
 	err := json.Unmarshal(in, &response)
@@ -156,9 +172,9 @@ func (h TaurosHandler) VerifySubscriptionResponse(in []byte) error {
 		return ez.Wrap(op, err)
 	}
 
-	// if response.Response != "ok" {
-	// 	return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
-	// }
+	if response.Response != "ok" {
+		return ez.New(op, ez.EINTERNAL, "error on verify subscription response", nil)
+	}
 
 	return nil
 }
@@ -179,4 +195,19 @@ func transformTradeToTicker(ta Trade) market.Ticker {
 		Volume: ta.Value,
 	}
 	return ticker
+}
+
+func getRequest(pair market.Pair, channel string) ([]byte, error) {
+	subscriptionMessage := SubscriptionMessage{
+		Action:  "subscribe",
+		Market:  strings.ToUpper(pair.Symbol("-")),
+		Channel: channel,
+	}
+
+	request, err := json.Marshal(subscriptionMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return request, nil
 }

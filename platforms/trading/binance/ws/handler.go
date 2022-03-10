@@ -1,176 +1,73 @@
 package ws
 
 import (
-	"encoding/json"
-	"fmt"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type BinanceHandler struct{}
+type binanceHandler struct{}
 
-func NewHandler() BinanceHandler {
-	return BinanceHandler{}
+func NewHandler() binanceHandler {
+	return binanceHandler{}
 }
 
-func tickerToMarketTicker(data BinanceTickerData) market.Ticker {
-	ask, _ := strconv.ParseFloat(data.BestAskPrice, 64)
-	bid, _ := strconv.ParseFloat(data.BestBidPrice, 64)
-	last, _ := strconv.ParseFloat(data.LastPrice, 64)
-
-	// baseAssetVolume, _ := strconv.ParseFloat(sBaseAssetVolume, 64)
-	// vwapNum, _ := strconv.ParseFloat(sWeightedAveragePrice, 64)
-	// vwap := vwapNum / baseAssetVolume
-
-	return market.Ticker{
-		Time: int64(data.EventTime),
-		Ask:  ask,
-		Bid:  bid,
-		Last: last,
-		// Volume: baseAssetVolume,
-		// VWAP:   vwap,
-	}
+func (h binanceHandler) Parse(in []byte) (*ws.ListenChan, error) {
+	panic("unimplemented")
 }
 
-func pairStringToPairStruct(pairStr string) (market.Pair, error) {
-	const op = "BinanceHandler.pairStringToPairStruct"
-
-	pair, ok := market.PairMappings[pairStr]
-	if !ok {
-		return market.Pair{}, ez.New(op, ez.EINVALID, fmt.Sprintf("%s is not a valid exchange", pairStr), nil)
-	}
-
-	return pair, nil
+func (h binanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+	return nil, nil
 }
 
-func (h BinanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
-	const op = "BinanceHandler.ToTickers"
-
-	payload := StreamTickerEvent{}
-	if strings.Contains(string(in), `"result"`) {
-		return nil, nil
-	}
-
-	err := json.Unmarshal(in, &payload)
-	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
-	}
-
-	marketTicker := tickerToMarketTicker(payload.Data)
-	pair, err := pairStringToPairStruct(payload.Data.Symbol)
-	if err != nil {
-		return nil, nil
-	}
-
-	ticks := []market.Ticker{marketTicker}
-	return &ws.TickerChan{
-		Pair:  pair,
-		Ticks: ticks,
-	}, nil
+func (h binanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+	return nil, nil
 }
 
-func (h BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-	const op = "BinanceHandler.ToOrderBook"
-	payload := StreamOrderBookEvent{}
-	if strings.Contains(string(in), `"result"`) {
-		return nil, nil
-	}
-
-	err := json.Unmarshal(in, &payload)
-	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
-	}
-
-	askPrice, _ := strconv.ParseFloat(payload.Data.BestAskPrice, 64)
-	bidPrice, _ := strconv.ParseFloat(payload.Data.BestBidPrice, 64)
-	askVolume, _ := strconv.ParseFloat(payload.Data.BestAskQuantity, 64)
-	bidVolume, _ := strconv.ParseFloat(payload.Data.BestBidQuantity, 64)
-
-	orderBook := market.OrderBook{
-		Time: time.Now().Unix(),
-		Asks: []market.OrderBookRow{{
-			Price:       askPrice,
-			Volume:      askVolume,
-			AccumVolume: askVolume,
-		}},
-		Bids: []market.OrderBookRow{{
-			Price:       bidPrice,
-			Volume:      bidVolume,
-			AccumVolume: bidVolume,
-		}},
-	}
-	pair, err := pairStringToPairStruct(payload.Data.Symbol)
-	if err != nil {
-		return nil, nil
-	}
-	return &ws.OrderBookChan{
-		Pair:      pair,
-		OrderBook: orderBook,
-	}, nil
+func (h binanceHandler) GetBaseEndpoint(pair []market.Pair) string {
+	return "wss://ws.bitso.com"
 }
 
-func (h BinanceHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
-	var pairsStr string
-	if channelType == "ticker" {
-		for _, singlePair := range pair {
-			pairsStr += strings.ToLower(singlePair.Symbol("")) + "@ticker/"
-		}
-	} else {
-		pairsStr = "!bookTicker/"
-	}
-
-	return fmt.Sprintf("wss://fstream.binance.com:443/stream?streams=%s", pairsStr)
-}
-
-func (h BinanceHandler) GetSubscriptionsRequests(pairs []market.Pair, _ genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h binanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
-	var pairsStr []string
+	// for _, pair := range pairs {
+	// 	channel := ordersChannel
+	// 	if channelType == genericws.ChannelTypeTicker {
+	// 		channel = tickerChannel
+	// 	}
+	// 	subscriptionMessage := SubscriptionMessage{
+	// 		Action: "subscribe",
+	// 		Book:   strings.ToLower(pair.Symbol("_")),
+	// 		Type:   channel,
+	// 	}
 
-	for _, pair := range pairs {
-		pairsStr = append(pairsStr, strings.ToLower(pair.Symbol(""))+"@ticker")
-	}
-	subscriptionMessage := SubscriptionRequest{
-		Method: "SUBSCRIBE",
-		Params: pairsStr,
-		ID:     1,
-	}
+	// 	request, err := json.Marshal(subscriptionMessage)
+	// 	if err != nil {
+	// 		return nil, ez.Wrap(op, err)
+	// 	}
 
-	byteSubscriptionMessage, err := json.Marshal(subscriptionMessage)
-	if err != nil {
-		return nil, ez.New(op, ez.EINTERNAL, "Error parsing Subscription Message Request", err)
-	}
-
-	requests = append(requests, byteSubscriptionMessage)
+	// 	requests = append(requests, request)
+	// }
 
 	return requests, nil
 }
 
-func (h BinanceHandler) VerifySubscriptionResponse(in []byte) error {
+func (h binanceHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "binanceHandler.VerifySubscriptionResponse"
 
-	if !strings.Contains(string(in), `"result"`) {
-		return nil
-	}
+	// response := &SubscriptionResponse{}
 
-	response := &SubscriptionResponse{}
+	// err := json.Unmarshal(in, &response)
+	// if err != nil {
+	// 	return ez.Wrap(op, err)
+	// }
 
-	err := json.Unmarshal(in, &response)
-	if err != nil {
-		return ez.Wrap(op, err)
-	}
-
-	if response.ID != 1 {
-		return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
-	}
+	// if response.Response != "ok" {
+	// 	return ez.New(op, ez.EINTERNAL, "Error on verify subscription response", nil)
+	// }
 
 	return nil
 }
