@@ -2,18 +2,47 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"strings"
-	"time"
 )
 
-type MEXCHandler struct{}
+type MEXCHandler struct {
+	Ask market.OrderBookRow
+	Bid market.OrderBookRow
+}
 
 func NewHandler() MEXCHandler {
 	return MEXCHandler{}
+}
+
+func (h *MEXCHandler) UpdateOrderBook(data MEXCOrderBookData) {
+	for _, v := range data.Asks {
+		if v[1] > 0 {
+			h.Ask = market.OrderBookRow{
+				Price:       v[0],
+				Volume:      v[1],
+				AccumVolume: v[1],
+			}
+			fmt.Println("Set ask", h.Ask)
+		}
+	}
+
+	for _, v := range data.Bids {
+		if v[1] > 0 {
+			h.Bid = market.OrderBookRow{
+				Price:       v[0],
+				Volume:      v[1],
+				AccumVolume: v[1],
+			}
+			fmt.Println("Set bid", h.Bid)
+		}
+	}
 }
 
 func mexcPairToMarketPair(in string) (market.Pair, error) {
@@ -28,8 +57,8 @@ func mexcPairToMarketPair(in string) (market.Pair, error) {
 	}, nil
 }
 
-func (h MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
-	const op = "FTXHandler.ToTickers"
+func (h *MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+	const op = "MEXCHandler.ToTickers"
 	payload := MEXCTickerPayload{}
 
 	if !strings.Contains(string(in), `"channel":"push.ticker"`) {
@@ -42,12 +71,16 @@ func (h MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}
 
 	pair, err := mexcPairToMarketPair(payload.Data.Symbol)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
+
 	marketTicker := market.Ticker{
 		Time:   payload.Timestamp,
 		Ask:    payload.Data.Ask1,
 		Bid:    payload.Data.Bid1,
 		Last:   payload.Data.LastPrice,
-		Volume: payload.Data.Volume24,
+		Volume: 0,
 		VWAP:   0,
 	}
 	return &ws.TickerChan{
@@ -56,7 +89,7 @@ func (h MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}, nil
 }
 
-func (h MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	const op = "MEXCHandler.ToOrderBook"
 	payload := MEXCOrderBookPayload{}
 	if !strings.Contains(string(in), `"channel":"push.depth"`) {
@@ -69,34 +102,31 @@ func (h MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}
 
 	pair, err := mexcPairToMarketPair(payload.Symbol)
+	if err != nil {
+		return nil, ez.Wrap(op, err)
+	}
 
-	var asks []market.OrderBookRow
-	for _, v := range payload.Data.Asks {
-		asks = append(asks, market.OrderBookRow{
-			Price:       v[0],
-			Volume:      v[1],
-			AccumVolume: v[1],
-		})
+	h.UpdateOrderBook(payload.Data)
+
+	if h.Ask.Price == 0 || h.Bid.Price == 0 {
+		return nil, nil
 	}
-	var bids []market.OrderBookRow
-	for _, v := range payload.Data.Bids {
-		bids = append(bids, market.OrderBookRow{
-			Price:       v[0],
-			Volume:      v[1],
-			AccumVolume: v[1],
-		})
-	}
+
 	return &ws.OrderBookChan{
-		Pair:      pair,
-		OrderBook: market.OrderBook{Time: time.Now().Unix(), Asks: asks, Bids: bids},
+		Pair: pair,
+		OrderBook: market.OrderBook{
+			Time: time.Now().Unix(),
+			Asks: []market.OrderBookRow{h.Ask},
+			Bids: []market.OrderBookRow{h.Bid},
+		},
 	}, nil
 }
 
-func (h MEXCHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
+func (h *MEXCHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
 	return "wss://contract.mexc.com/ws"
 }
 
-func (h MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h *MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
 	const op = "MEXCHandler.GetSubscriptionsRequests"
 
 	var subscriptions []genericws.SubscriptionRequest
@@ -125,7 +155,7 @@ func (h MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType g
 	return subscriptions, nil
 }
 
-func (h MEXCHandler) VerifySubscriptionResponse(in []byte) error {
+func (h *MEXCHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "MEXCHandler.VerifySubscriptionResponse"
 	if strings.Contains(string(in), `"data":"success"`) {
 		return nil

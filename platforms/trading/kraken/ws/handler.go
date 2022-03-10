@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -127,7 +126,6 @@ func (h *KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, nil
 	}
 
-	fmt.Println("to ticker:", string(in))
 	tradeInfo, err := processTrade(string(in))
 	if err != nil {
 		return nil, ez.New(op, ez.EINVALID, "invalid trade info", nil)

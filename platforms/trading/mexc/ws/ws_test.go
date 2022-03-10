@@ -30,12 +30,12 @@ func TestWebsocket(t *testing.T) {
 	handler := NewHandler()
 
 	opts = append(opts, genericws.WithName("FTX"))
-	ws, err := genericws.NewClient(handler, opts...)
+	ws, err := genericws.NewClient(&handler, opts...)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 29*time.Second)
 	defer cancel()
 
 	tickerChannel, err := ws.ListenTicker(ctx)
@@ -43,7 +43,6 @@ func TestWebsocket(t *testing.T) {
 
 	orderChannel, err := ws.ListenOrderBook(ctx)
 	assert.Nil(t, err)
-	assert.Equal(t, "", "Test")
 
 	for {
 		select {
