@@ -43,7 +43,6 @@ func TestWebsocket(t *testing.T) {
 
 	orderChannel, err := ws.ListenOrderBook(ctx)
 	assert.Nil(t, err)
-	assert.Equal(t, "", "Test")
 
 	for {
 		select {

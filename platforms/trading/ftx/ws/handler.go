@@ -11,7 +11,10 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type FTXHandler struct{}
+type FTXHandler struct {
+	Ask market.OrderBookRow
+	Bid market.OrderBookRow
+}
 
 func NewHandler() FTXHandler {
 	return FTXHandler{}
@@ -60,32 +63,39 @@ func (h FTXHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}, nil
 }
 
-func ftxAskBidsToOrderBookRow(asks, bids [][]float64) (parsedAsks market.OrderBookRow, parsedBids market.OrderBookRow) {
-	if len(asks) == 0 {
-		parsedAsks = market.OrderBookRow{}
-	} else {
-		ask := asks[0]
-		parsedAsks = market.OrderBookRow{
-			Price:       ask[0],
-			Volume:      ask[1],
-			AccumVolume: ask[1],
+func (h *FTXHandler) ftxAskBidsToOrderBookRow(asks, bids [][]float64) {
+	if len(asks) > 0 {
+		for _, ask := range asks {
+			volume := ask[1]
+			if volume > 0 {
+				h.Ask = market.OrderBookRow{
+					Price:       ask[0],
+					Volume:      ask[1],
+					AccumVolume: ask[1],
+				}
+
+			}
 		}
 	}
-	if len(bids) == 0 {
-		parsedBids = market.OrderBookRow{}
-	} else {
-		bid := bids[0]
-		parsedBids = market.OrderBookRow{
-			Price:       bid[0],
-			Volume:      bid[1],
-			AccumVolume: bid[1],
+
+	if len(bids) > 0 {
+		for _, bid := range bids {
+			volume := bid[1]
+			if volume > 0 {
+				h.Bid = market.OrderBookRow{
+					Price:       bid[0],
+					Volume:      bid[1],
+					AccumVolume: bid[1],
+				}
+
+			}
 		}
 	}
-	return parsedAsks, parsedBids
 }
 
 func (h FTXHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	const op = "BinanceHandler.ToOrderBook"
+
 	payload := FTXOrderBookStream{}
 	if strings.Contains(string(in), `"type": "partial"`) {
 		return nil, nil
@@ -96,10 +106,19 @@ func (h FTXHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
-	asks, bids := ftxAskBidsToOrderBookRow(payload.Data.Asks, payload.Data.Bids)
+	h.ftxAskBidsToOrderBookRow(payload.Data.Asks, payload.Data.Bids)
+
+	if h.Ask.Price == 0 || h.Bid.Price == 0 {
+		return nil, nil
+	}
+
 	return &ws.OrderBookChan{
-		Pair:      ftxPairToMarketPair(payload.Market),
-		OrderBook: market.OrderBook{Time: time.Now().Unix(), Asks: []market.OrderBookRow{asks}, Bids: []market.OrderBookRow{bids}},
+		Pair: ftxPairToMarketPair(payload.Market),
+		OrderBook: market.OrderBook{
+			Time: time.Now().Unix(),
+			Asks: []market.OrderBookRow{h.Ask},
+			Bids: []market.OrderBookRow{h.Bid},
+		},
 	}, nil
 }
 
