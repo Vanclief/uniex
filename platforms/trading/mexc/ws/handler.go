@@ -2,12 +2,12 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 	"strings"
+	"time"
 )
 
 type MEXCHandler struct{}
@@ -40,7 +40,7 @@ func (h MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if err != nil {
 		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
-	
+
 	pair, err := mexcPairToMarketPair(payload.Data.Symbol)
 	marketTicker := market.Ticker{
 		Time:   payload.Timestamp,
@@ -57,8 +57,39 @@ func (h MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 }
 
 func (h MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-	fmt.Println("ToOrderBook", string(in))
-	return nil, nil
+	const op = "MEXCHandler.ToOrderBook"
+	payload := MEXCOrderBookPayload{}
+	if !strings.Contains(string(in), `"channel":"push.depth"`) {
+		return nil, nil
+	}
+
+	err := json.Unmarshal(in, &payload)
+	if err != nil {
+		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+	}
+
+	pair, err := mexcPairToMarketPair(payload.Symbol)
+
+	var asks []market.OrderBookRow
+	for _, v := range payload.Data.Asks {
+		asks = append(asks, market.OrderBookRow{
+			Price:       v[0],
+			Volume:      v[1],
+			AccumVolume: v[1],
+		})
+	}
+	var bids []market.OrderBookRow
+	for _, v := range payload.Data.Bids {
+		bids = append(bids, market.OrderBookRow{
+			Price:       v[0],
+			Volume:      v[1],
+			AccumVolume: v[1],
+		})
+	}
+	return &ws.OrderBookChan{
+		Pair:      pair,
+		OrderBook: market.OrderBook{Time: time.Now().Unix(), Asks: asks, Bids: bids},
+	}, nil
 }
 
 func (h MEXCHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
