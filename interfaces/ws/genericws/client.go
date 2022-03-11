@@ -152,6 +152,7 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 	}
 
 	listenChan := make(chan ws.ListenChan, c.buffer)
+	errCounter := 0
 
 	go func() {
 		for {
@@ -169,17 +170,18 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 				}
 
 				bs, bErr := wsConn.ReadMessage()
-				if _, ok := bErr.(*websocket.CloseError); ok {
-					time.Sleep(waitTimeForNewConn)
-					wsConn, _ = c.createConnection(ctx)
-					if wsConn.IsClose() {
-						continue
-					}
-				}
-
 				if bErr != nil {
 					log.Error().Str("Exchange", c.name).Err(bErr).Msg("Error reading message")
-					continue
+					if errCounter > 5 {
+						time.Sleep(waitTimeForNewConn)
+						wsConn, _ = c.createConnection(ctx)
+						if wsConn.IsClose() {
+							continue
+						}
+					} else {
+						errCounter = errCounter + 1
+						continue
+					}
 				}
 
 				data, pErr := c.handler.Parse(bs)
