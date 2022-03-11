@@ -167,10 +167,10 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 						continue
 					}
 				}
-				bs, bErr := wsConn.ReadMessage()
 
+				bs, bErr := wsConn.ReadMessage()
 				if bErr != nil {
-					log.Printf("error reading message %s", bErr)
+					log.Error().Str("Exchange", c.name).Err(bErr).Msg("Error reading message")
 					continue
 				}
 
