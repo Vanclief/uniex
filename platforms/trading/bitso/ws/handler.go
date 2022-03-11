@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -187,7 +188,8 @@ func (h *bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	if response.Response != "ok" {
-		return ez.New(op, ez.EINTERNAL, "error on verify subscription response", nil)
+		msg := fmt.Sprintf("Error on very subscription response: %s", response.Response)
+		return ez.New(op, ez.EINTERNAL, msg, nil)
 	}
 
 	return nil
