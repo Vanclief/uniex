@@ -41,9 +41,15 @@ type Settings struct {
 	PongWaitTime                  time.Duration
 }
 
+type HandlerOptions struct {
+	Pairs    []market.Pair
+	Channels []ChannelOpts
+}
+
 type WebsocketHandler interface {
-	GetSettings(pair []market.Pair, channels []ChannelOpts) (Settings, error)
-	GetSubscriptionsRequests(pair []market.Pair, channels []ChannelOpts) ([]SubscriptionRequest, error)
+	Init(opts HandlerOptions) error
+	GetSettings() (Settings, error)
+	GetSubscriptionsRequests() ([]SubscriptionRequest, error)
 	VerifySubscriptionResponse(response []byte) error
 	Parse(in []byte) (*ws.ListenChan, error)
 }

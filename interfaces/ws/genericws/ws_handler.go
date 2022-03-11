@@ -15,20 +15,20 @@ const (
 type wsConnHandler struct {
 	host string
 	conn *websocket.Conn
-	opts Options
+	opts WSHandlerOptions
 }
 
-type Options struct {
+type WSHandlerOptions struct {
 	PingTimeInterval time.Duration
 	PongWaitTime     time.Duration
 }
 
-var DefaultOptions = Options{
+var DefaultOptions = WSHandlerOptions{
 	PingTimeInterval: pingTimeInterval,
 	PongWaitTime:     pongWaitTime,
 }
 
-func NewConnHandler(host string, opts Options) *wsConnHandler {
+func NewConnHandler(host string, opts WSHandlerOptions) *wsConnHandler {
 	return &wsConnHandler{
 		host: host,
 		opts: opts,

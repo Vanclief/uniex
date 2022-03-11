@@ -17,13 +17,20 @@ const (
 	tickerChannel = "trades"
 )
 
-type bitsoHandler struct{}
-
-func NewHandler() bitsoHandler {
-	return bitsoHandler{}
+type bitsoHandler struct {
+	opts genericws.HandlerOptions
 }
 
-func (h bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func NewHandler() *bitsoHandler {
+	return &bitsoHandler{}
+}
+
+func (h *bitsoHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
+}
+
+func (h *bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
@@ -68,7 +75,7 @@ func (h bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	return nil, nil
 }
 
-func (h bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
+func (h *bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
 	tradeType := TradeType{}
 	err := json.Unmarshal(in, &tradeType)
 	if err != nil {
@@ -83,7 +90,7 @@ func (h bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
 	return ticks, nil
 }
 
-func (h bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
+func (h *bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
@@ -134,22 +141,22 @@ func (h bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
 	return &orderBook, nil
 }
 
-func (h bitsoHandler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (h *bitsoHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://ws.bitso.com",
 	}, nil
 }
 
-func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h *bitsoHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
-	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(h.opts.Pairs))
 
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(h.opts.Channels))
+	for _, channel := range h.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	for _, pair := range pairs {
+	for _, pair := range h.opts.Pairs {
 		if channelsMap[genericws.OrderBookChannel] {
 			request, err := getRequest(pair, ordersChannel)
 			if err != nil {
@@ -170,7 +177,7 @@ func (h bitsoHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []g
 	return requests, nil
 }
 
-func (h bitsoHandler) VerifySubscriptionResponse(in []byte) error {
+func (h *bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "bitsoHandler.VerifySubscriptionResponse"
 	response := &SubscriptionResponse{}
 

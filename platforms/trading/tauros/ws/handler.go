@@ -17,13 +17,20 @@ const (
 	tickerChannel = "ticker"
 )
 
-type TaurosHandler struct{}
-
-func NewHandler() TaurosHandler {
-	return TaurosHandler{}
+type TaurosHandler struct {
+	opts genericws.HandlerOptions
 }
 
-func (h TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func NewHandler() *TaurosHandler {
+	return &TaurosHandler{}
+}
+
+func (h *TaurosHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
+}
+
+func (h *TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
@@ -61,7 +68,7 @@ func (h TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	return nil, nil
 }
 
-func (h TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
+func (h *TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	tick := Tick{}
 	err := json.Unmarshal(in, &tick)
 	if err != nil {
@@ -81,7 +88,7 @@ func (h TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, erro
 	return ticks, &pair, nil
 }
 
-func (h TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
+func (h *TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
@@ -137,22 +144,22 @@ func (h TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, 
 	return &orderBook, &pair, nil
 }
 
-func (h TaurosHandler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (h *TaurosHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://wsv2.tauros.io",
 	}, nil
 }
 
-func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h *TaurosHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
-	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(h.opts.Pairs))
 
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(h.opts.Channels))
+	for _, channel := range h.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	for _, pair := range pairs {
+	for _, pair := range h.opts.Pairs {
 		if channelsMap[genericws.OrderBookChannel] {
 			request, err := getRequest(pair, ordersChannel)
 			if err != nil {
@@ -173,7 +180,7 @@ func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []
 	return requests, nil
 }
 
-func (h TaurosHandler) VerifySubscriptionResponse(in []byte) error {
+func (h *TaurosHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "TaurosHandler.VerifySubscriptionResponse"
 	response := &SubscriptionResponse{}
 

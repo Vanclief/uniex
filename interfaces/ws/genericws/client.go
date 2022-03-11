@@ -50,7 +50,14 @@ func (c *baseClient) createConnection(ctx context.Context) (*wsConnHandler, erro
 	const op = "baseClient.createConnection"
 	var err error
 
-	settings, err := c.handler.GetSettings(c.subscriptionPairs, c.channels)
+	if iErr := c.handler.Init(HandlerOptions{
+		Pairs:    c.subscriptionPairs,
+		Channels: c.channels,
+	}); iErr != nil {
+		return nil, ez.Wrap(op, iErr)
+	}
+
+	settings, err := c.handler.GetSettings()
 	if err != nil {
 		return nil, ez.New(op, ez.EINTERNAL, "", err)
 	}
@@ -78,7 +85,7 @@ func (c *baseClient) createConnection(ctx context.Context) (*wsConnHandler, erro
 func (c *baseClient) subscribe(ctx context.Context, wsConn *wsConnHandler) error {
 	const op = "baseClient.subscribe"
 
-	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs, c.channels)
+	requests, err := c.handler.GetSubscriptionsRequests()
 	if err != nil {
 		msgErr := fmt.Sprintf("error creating subscription request: %s", err.Error())
 		return ez.New(op, ez.EINTERNAL, msgErr, err)
@@ -197,8 +204,8 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 	return listenChan, nil
 }
 
-func getOptionsFromSettings(settings Settings) Options {
-	opts := Options{
+func getOptionsFromSettings(settings Settings) WSHandlerOptions {
+	opts := WSHandlerOptions{
 		PingTimeInterval: pingTimeInterval,
 		PongWaitTime:     pongWaitTime,
 	}

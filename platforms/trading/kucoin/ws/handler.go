@@ -15,13 +15,20 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type Handler struct{}
+type Handler struct {
+	opts genericws.HandlerOptions
+}
 
 func NewHandler() *Handler {
 	return &Handler{}
 }
 
-func (p Handler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *Handler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
+}
+
+func (p *Handler) Parse(in []byte) (*ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
@@ -66,7 +73,7 @@ func (p Handler) Parse(in []byte) (*ws.ListenChan, error) {
 	return nil, nil
 }
 
-func (p Handler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (p *Handler) GetSettings() (genericws.Settings, error) {
 	accessToken, err := GetToken()
 	if err != nil {
 		return genericws.Settings{}, err
@@ -79,20 +86,20 @@ func (p Handler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpt
 	}, nil
 }
 
-func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (p *Handler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "kucoin.GetSubscriptionsRequests"
 	var topic string
-	for _, v := range pair {
+	for _, v := range p.opts.Pairs {
 		topic += fmt.Sprintf("%s-%s,", v.Base.Symbol, v.Quote.Symbol)
 	}
 	topic = topic[:len(topic)-1]
 
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(p.opts.Channels))
+	for _, channel := range p.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	subRequests := make([]genericws.SubscriptionRequest, 0, len(channels))
+	subRequests := make([]genericws.SubscriptionRequest, 0, len(p.opts.Channels))
 
 	if channelsMap[genericws.TickerChannel] {
 		subscriptionMessage := SubscriptionMessageRequest{
@@ -127,7 +134,7 @@ func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channels []generic
 	return subRequests, nil
 }
 
-func (p Handler) VerifySubscriptionResponse(in []byte) error {
+func (p *Handler) VerifySubscriptionResponse(in []byte) error {
 	const op = "kucoin.VerifySubscriptionResponse"
 
 	response := &SubscriptionMessageResponse{}
@@ -143,7 +150,7 @@ func (p Handler) VerifySubscriptionResponse(in []byte) error {
 	return nil
 }
 
-func (p Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
+func (p *Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	const op = "kucoin.ToTickers"
 
 	tradeType := TradeType{}
@@ -162,7 +169,7 @@ func (p Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	return ticks, &pair, nil
 }
 
-func (p Handler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
+func (p *Handler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
 	order := Order{}
 
 	err := json.Unmarshal(in, &order)
