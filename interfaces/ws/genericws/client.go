@@ -149,7 +149,6 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 	wsConn := &wsConnHandler{}
 
 	listenChan := make(chan ws.ListenChan, c.buffer)
-	errCounter := 0
 
 	go func() {
 		for {
@@ -176,17 +175,8 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 
 				bs, bErr := wsConn.ReadMessage()
 				if bErr != nil {
-					log.Error().Str("Exchange", c.name).Err(bErr).Msg("Error reading message")
-					if errCounter > 5 {
-						time.Sleep(waitTimeForNewConn)
-						wsConn, _ = c.createConnection(ctx)
-						if wsConn.IsClose() {
-							continue
-						}
-					} else {
-						errCounter = errCounter + 1
-						continue
-					}
+					log.Printf("error reading message %s", bErr)
+					continue
 				}
 
 				data, pErr := c.handler.Parse(bs)
