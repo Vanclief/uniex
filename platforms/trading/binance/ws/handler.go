@@ -13,7 +13,7 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type BinanceHandler struct{
+type BinanceHandler struct {
 	opts genericws.HandlerOptions
 }
 
@@ -28,12 +28,16 @@ func NewHandler() BinanceHandler {
 
 func (h *BinanceHandler) Parse(in []byte) (*ws.ListenChan, error) {
 
-	fmt.Println("in", string(in))
+	if strings.Contains(string(in), `@bookTicker`) {
+		return h.ToOrderBook(in)
+	} else if strings.Contains(string(in), `@ticker`) {
+		return h.ToTickers(in)
+	}
 
 	return nil, nil
 }
 
-func (h *BinanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h *BinanceHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
 	const op = "BinanceHandler.ToTickers"
 
 	payload := StreamTickerEvent{}
@@ -53,14 +57,15 @@ func (h *BinanceHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}
 
 	ticks := []market.Ticker{marketTicker}
-	return &ws.TickerChan{
-		Pair:  pair,
-		Ticks: ticks,
+	return &ws.ListenChan{
+		Pair:    pair,
+		Tickers: ticks,
 	}, nil
 }
 
-func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	const op = "BinanceHandler.ToOrderBook"
+
 	payload := StreamOrderBookEvent{}
 	if strings.Contains(string(in), `"result"`) {
 		return nil, nil
@@ -93,7 +98,7 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	if err != nil {
 		return nil, nil
 	}
-	return &ws.OrderBookChan{
+	return &ws.ListenChan{
 		Pair:      pair,
 		OrderBook: orderBook,
 	}, nil
@@ -101,18 +106,15 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 
 func (h *BinanceHandler) GetSettings() (genericws.Settings, error) {
 	var pairsStr string
-	// if channelType == "ticker" {
-	// 	for _, singlePair := range pair {
-	// 		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@ticker/"
-	// 	}
-	// } else {
-	// 	pairsStr = "!bookTicker/"
-	// }
+
 	for _, singlePair := range h.opts.Pairs {
 		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@ticker/"
 	}
-	pairsStr += "!bookTicker/"
-	
+
+	for _, singlePair := range h.opts.Pairs {
+		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@bookTicker/"
+	}
+
 	return genericws.Settings{
 		Endpoint: fmt.Sprintf("wss://fstream.binance.com:443/stream?streams=%s", pairsStr),
 	}, nil
@@ -147,8 +149,6 @@ func (h *BinanceHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionReq
 func (h *BinanceHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "binanceHandler.VerifySubscriptionResponse"
 
-	fmt.Println("verify", string(in))
-
 	if !strings.Contains(string(in), `"result"`) {
 		return nil
 	}
@@ -171,17 +171,18 @@ func tickerToMarketTicker(data BinanceTickerData) market.Ticker {
 	ask, _ := strconv.ParseFloat(data.BestAskPrice, 64)
 	bid, _ := strconv.ParseFloat(data.BestBidPrice, 64)
 	last, _ := strconv.ParseFloat(data.LastPrice, 64)
+	volume, _ := strconv.ParseFloat(data.LastQuantity, 64)
 
 	// baseAssetVolume, _ := strconv.ParseFloat(sBaseAssetVolume, 64)
 	// vwapNum, _ := strconv.ParseFloat(sWeightedAveragePrice, 64)
 	// vwap := vwapNum / baseAssetVolume
 
 	return market.Ticker{
-		Time: int64(data.EventTime),
-		Ask:  ask,
-		Bid:  bid,
-		Last: last,
-		// Volume: baseAssetVolume,
+		Time:   int64(data.EventTime),
+		Ask:    ask,
+		Bid:    bid,
+		Last:   last,
+		Volume: volume,
 		// VWAP:   vwap,
 	}
 }

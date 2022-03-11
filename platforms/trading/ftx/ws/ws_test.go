@@ -48,11 +48,11 @@ func TestWs(t *testing.T) {
 			assert.True(t, ok)
 
 			if msg.OrderBook.Time > 0 {
-				fmt.Println("ob", msg.OrderBook)
+				fmt.Println("ob", msg.Pair.Symbol("/"), msg.OrderBook)
 			}
 
 			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
-				fmt.Println("tick", msg.Tickers[0])
+				fmt.Println("tick", msg.Pair.Symbol("/"), msg.Tickers[0])
 			}
 		}
 	}
