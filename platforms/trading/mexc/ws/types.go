@@ -1,5 +1,10 @@
 package ws
 
+type MEXCMsg struct {
+	Channel string `json:"channel"`
+	Data    interface{}
+}
+
 type MEXCSubscriptionRequest struct {
 	Method string     `json:"method"`
 	Param  MEXCSymbol `json:"param"`

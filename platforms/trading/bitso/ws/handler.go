@@ -58,9 +58,9 @@ func (h bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 		if ticks != nil {
 			return &ws.ListenChan{
-				Type:  ws.TickerType,
-				Pair:  pair,
-				Ticks: ticks,
+				Type:    ws.TickerType,
+				Pair:    pair,
+				Tickers: ticks,
 			}, nil
 		}
 	}

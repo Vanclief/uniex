@@ -17,8 +17,8 @@ type MEXCHandler struct {
 	Bid market.OrderBookRow
 }
 
-func NewHandler() MEXCHandler {
-	return MEXCHandler{}
+func NewHandler() *MEXCHandler {
+	return &MEXCHandler{}
 }
 
 func (h *MEXCHandler) UpdateOrderBook(data MEXCOrderBookData) {
@@ -29,7 +29,6 @@ func (h *MEXCHandler) UpdateOrderBook(data MEXCOrderBookData) {
 				Volume:      v[1],
 				AccumVolume: v[1],
 			}
-			fmt.Println("Set ask", h.Ask)
 		}
 	}
 
@@ -40,7 +39,6 @@ func (h *MEXCHandler) UpdateOrderBook(data MEXCOrderBookData) {
 				Volume:      v[1],
 				AccumVolume: v[1],
 			}
-			fmt.Println("Set bid", h.Bid)
 		}
 	}
 }
@@ -57,13 +55,29 @@ func mexcPairToMarketPair(in string) (market.Pair, error) {
 	}, nil
 }
 
-func (h *MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h *MEXCHandler) Parse(in []byte) (*ws.ListenChan, error) {
+
+	t := MEXCMsg{}
+	err := json.Unmarshal(in, &t)
+	if err != nil {
+		return nil, err
+	}
+
+	switch t.Channel {
+	case "push.ticker":
+		return h.ToTickers(in)
+	case "push.depth":
+		return h.ToOrderBook(in)
+	}
+
+	fmt.Println("in", string(in))
+
+	return nil, nil
+}
+
+func (h *MEXCHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
 	const op = "MEXCHandler.ToTickers"
 	payload := MEXCTickerPayload{}
-
-	if !strings.Contains(string(in), `"channel":"push.ticker"`) {
-		return nil, nil
-	}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
@@ -83,18 +97,15 @@ func (h *MEXCHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		Volume: 0,
 		VWAP:   0,
 	}
-	return &ws.TickerChan{
-		Pair:  pair,
-		Ticks: []market.Ticker{marketTicker},
+	return &ws.ListenChan{
+		Pair:    pair,
+		Tickers: []market.Ticker{marketTicker},
 	}, nil
 }
 
-func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	const op = "MEXCHandler.ToOrderBook"
 	payload := MEXCOrderBookPayload{}
-	if !strings.Contains(string(in), `"channel":"push.depth"`) {
-		return nil, nil
-	}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
@@ -112,7 +123,7 @@ func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 		return nil, nil
 	}
 
-	return &ws.OrderBookChan{
+	return &ws.ListenChan{
 		Pair: pair,
 		OrderBook: market.OrderBook{
 			Time: time.Now().Unix(),
@@ -122,43 +133,66 @@ func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, nil
 }
 
-func (h *MEXCHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
-	return "wss://contract.mexc.com/ws"
+func (h *MEXCHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://contract.mexc.com/ws",
+	}, nil
 }
 
-func (h *MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h *MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "MEXCHandler.GetSubscriptionsRequests"
 
 	var subscriptions []genericws.SubscriptionRequest
-	var method string
-	if channelType == genericws.ChannelTypeTicker {
-		method = "sub.ticker"
-	} else if channelType == genericws.ChannelTypeOrderBook {
-		method = "sub.depth"
+
+	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
+	for _, channel := range channels {
+		channelsMap[channel.Type] = true
 	}
 
-	for _, v := range pairs {
+	for _, pair := range pairs {
+		if channelsMap[genericws.OrderBookChannel] {
+			request, err := getRequest(pair, "sub.depth")
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			subscriptions = append(subscriptions, request)
+		}
 
-		marketSymbol := v.Symbol("_")
-		subscriptionRequest := MEXCSubscriptionRequest{
-			Method: method,
-			Param: MEXCSymbol{
-				Symbol: marketSymbol,
-			},
+		if channelsMap[genericws.TickerChannel] {
+			request, err := getRequest(pair, "sub.ticker")
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			subscriptions = append(subscriptions, request)
 		}
-		byteSubscription, err := json.Marshal(subscriptionRequest)
-		if err != nil {
-			return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription request", err)
-		}
-		subscriptions = append(subscriptions, byteSubscription)
 	}
+
 	return subscriptions, nil
 }
 
 func (h *MEXCHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "MEXCHandler.VerifySubscriptionResponse"
+
 	if strings.Contains(string(in), `"data":"success"`) {
 		return nil
 	}
 	return ez.New(op, ez.EINVALID, "invalid subscription response", nil)
+}
+
+func getRequest(pair market.Pair, channel string) ([]byte, error) {
+
+	marketSymbol := pair.Symbol("_")
+	subscriptionMessage := MEXCSubscriptionRequest{
+		Method: channel,
+		Param: MEXCSymbol{
+			Symbol: marketSymbol,
+		},
+	}
+
+	request, err := json.Marshal(subscriptionMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return request, nil
 }
