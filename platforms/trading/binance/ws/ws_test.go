@@ -30,7 +30,7 @@ func TestWs(t *testing.T) {
 	handler := NewHandler()
 
 	opts = append(opts, genericws.WithName("Binance"))
-	ws, err := genericws.NewClient(handler, opts...)
+	ws, err := genericws.NewClient(&handler, opts...)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
