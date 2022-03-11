@@ -25,5 +25,5 @@ type ListenChan struct {
 	Type      dataType
 	Pair      market.Pair
 	OrderBook market.OrderBook
-	Ticks     []market.Ticker
+	Tickers   []market.Ticker
 }

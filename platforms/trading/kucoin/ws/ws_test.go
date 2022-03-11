@@ -14,18 +14,18 @@ func TestWs(t *testing.T) {
 
 	opts := []genericws.Option{}
 
-	btcMXN := market.Pair{
+	btc := market.Pair{
 		Base:  market.Asset{Symbol: "BTC"},
 		Quote: market.Asset{Symbol: "USDT"},
 	}
 
-	ethMXN := market.Pair{
+	eth := market.Pair{
 		Base:  market.Asset{Symbol: "ETH"},
 		Quote: market.Asset{Symbol: "USDT"},
 	}
 
-	opts = append(opts, genericws.WithSubscriptionTo(btcMXN))
-	opts = append(opts, genericws.WithSubscriptionTo(ethMXN))
+	opts = append(opts, genericws.WithSubscriptionTo(btc))
+	opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -37,24 +37,23 @@ func TestWs(t *testing.T) {
 
 	ctx := context.Background()
 
-	tickerChannel, err := ws.ListenTicker(ctx)
-	assert.Nil(t, err)
-
-	orderChannel, err := ws.ListenOrderBook(ctx)
+	wsChannel, err := ws.Listen(ctx)
 	assert.Nil(t, err)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case order, ok := <-orderChannel:
+		case msg, ok := <-wsChannel:
 			assert.True(t, ok)
-			fmt.Println("order", order.Pair.String(), "Ask", order.OrderBook.Asks[0].Price, "Bid", order.OrderBook.Bids[0].Price)
 
-		case tick, ok := <-tickerChannel:
-			assert.True(t, ok)
-			assert.NotNil(t, tick)
-			fmt.Println("tick", tick.Pair.String(), tick.Ticks[0].Last)
+			if msg.OrderBook.Time > 0 {
+				fmt.Println("ob", msg.OrderBook)
+			}
+
+			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
+				fmt.Println("tick", msg.Tickers[0])
+			}
 		}
 	}
 }

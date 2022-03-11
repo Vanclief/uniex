@@ -4,29 +4,28 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-func TestWebsocket(t *testing.T) {
+func TestWs(t *testing.T) {
 
 	opts := []genericws.Option{}
 
-	btcMXN := market.Pair{
+	btc := market.Pair{
 		Base:  market.Asset{Symbol: "BTC"},
 		Quote: market.Asset{Symbol: "MXN"},
 	}
 
-	ethMXN := market.Pair{
-		Base:  market.Asset{Symbol: "USDC"},
+	eth := market.Pair{
+		Base:  market.Asset{Symbol: "ETH"},
 		Quote: market.Asset{Symbol: "MXN"},
 	}
 
-	opts = append(opts, genericws.WithSubscriptionTo(btcMXN))
-	opts = append(opts, genericws.WithSubscriptionTo(ethMXN))
+	opts = append(opts, genericws.WithSubscriptionTo(btc))
+	opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -36,28 +35,25 @@ func TestWebsocket(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
 
-	// ctx := context.Background()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
+	ctx := context.Background()
 
-	tickerChannel, err := ws.ListenTicker(ctx)
+	wsChannel, err := ws.Listen(ctx)
 	assert.Nil(t, err)
-
-	// orderChannel, err := ws.ListenOrderBook(ctx)
-	// assert.Nil(t, err)
 
 	for {
 		select {
 		case <-ctx.Done():
-			assert.FailNow(t, "CTX done")
 			return
-		// case order, ok := <-orderChannel:
-		// 	assert.True(t, ok)
-		// 	fmt.Println("order", order.Pair.String(), order.OrderBook)
-
-		case tick, ok := <-tickerChannel:
+		case msg, ok := <-wsChannel:
 			assert.True(t, ok)
-			fmt.Println("tick", tick.Pair.String(), tick.Ticks)
+
+			if msg.OrderBook.Time > 0 {
+				fmt.Println("ob", msg.OrderBook)
+			}
+
+			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
+				fmt.Println("tick", msg.Tickers[0])
+			}
 		}
 	}
 }

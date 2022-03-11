@@ -43,6 +43,7 @@ func (h TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
 				OrderBook: *ob,
 			}, nil
 		}
+
 	case "ticker":
 		ticks, pair, pErr := h.toTickers(in)
 		if pErr != nil {
@@ -50,9 +51,9 @@ func (h TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 		if ticks != nil {
 			return &ws.ListenChan{
-				Type:  ws.TickerType,
-				Pair:  *pair,
-				Ticks: ticks,
+				Type:    ws.TickerType,
+				Pair:    *pair,
+				Tickers: ticks,
 			}, nil
 		}
 	}

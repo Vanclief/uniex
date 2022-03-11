@@ -17,8 +17,8 @@ import (
 
 type Handler struct{}
 
-func NewHandler() Handler {
-	return Handler{}
+func NewHandler() *Handler {
+	return &Handler{}
 }
 
 func (p Handler) Parse(in []byte) (*ws.ListenChan, error) {
@@ -56,9 +56,9 @@ func (p Handler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 		if ticks != nil {
 			return &ws.ListenChan{
-				Type:  ws.TickerType,
-				Pair:  *pair,
-				Ticks: ticks,
+				Type:    ws.TickerType,
+				Pair:    *pair,
+				Tickers: ticks,
 			}, nil
 		}
 	}
@@ -123,7 +123,7 @@ func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channels []generic
 		}
 		subRequests = append(subRequests, bsSubOrder)
 	}
-	
+
 	return subRequests, nil
 }
 
@@ -164,10 +164,12 @@ func (p Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 
 func (p Handler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
 	order := Order{}
+
 	err := json.Unmarshal(in, &order)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	orderBook := market.OrderBook{
 		Time: order.Data.Timestamp,
 		Asks: []market.OrderBookRow{},
@@ -181,6 +183,7 @@ func (p Handler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error)
 		}
 		orderBook.Asks = append(orderBook.Asks, obRow)
 	}
+
 	if len(orderBook.Asks) > 0 {
 		sort.Slice(orderBook.Asks, func(i, j int) bool {
 			return orderBook.Asks[i].Price < orderBook.Asks[j].Price

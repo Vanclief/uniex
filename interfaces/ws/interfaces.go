@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// DataAPI - Unified data interface for Websockets
-type DataAPI interface {
+// PublicWS - Unified data interface for Websockets
+type PublicWS interface {
 	Listen(ctx context.Context) (<-chan ListenChan, error)
 }
