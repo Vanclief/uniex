@@ -24,11 +24,13 @@ func (h binanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	return nil, nil
 }
 
-func (h binanceHandler) GetBaseEndpoint(pair []market.Pair) string {
-	return "wss://ws.bitso.com"
+func (h binanceHandler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://ws.bitso.com",
+	}, nil
 }
 
-func (h binanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h binanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
