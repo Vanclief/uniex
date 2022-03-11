@@ -169,17 +169,16 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 				}
 
 				bs, bErr := wsConn.ReadMessage()
-				if bErr != nil {
-					log.Error().Str("Exchange", c.name).Err(bErr).Msg("Error reading message")
-					continue
+				if _, ok := bErr.(*websocket.CloseError); ok {
+					time.Sleep(waitTimeForNewConn)
+					wsConn, _ = c.createConnection(ctx)
+					if wsConn.IsClose() {
+						continue
+					}
 				}
 
 				if bErr != nil {
-					log.Error().
-						Str("OP", op).
-						Str("Exchange", c.name).
-						Err(bErr).
-						Msg("Error reading orderbook data from ws")
+					log.Error().Str("Exchange", c.name).Err(bErr).Msg("Error reading message")
 					continue
 				}
 
