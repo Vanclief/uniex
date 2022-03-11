@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -69,8 +68,6 @@ func (h *MEXCHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	case "push.depth":
 		return h.ToOrderBook(in)
 	}
-
-	fmt.Println("in", string(in))
 
 	return nil, nil
 }

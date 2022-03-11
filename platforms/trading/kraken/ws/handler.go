@@ -12,6 +12,11 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
+const (
+	ordersChannel = "ticker" // We use the ticker for the orders
+	tickerChannel = "trade"  // We use the trade for the ticker
+)
+
 type KrakenHandler struct {
 	AskPrice  float64
 	AskVolume float64
@@ -119,7 +124,19 @@ func processTrade(in string) (*TradeInfo, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h *KrakenHandler) Parse(in []byte) (*ws.ListenChan, error) {
+
+	if strings.Contains(string(in), tickerChannel) {
+		return h.ToTickers(in)
+	} else if strings.Contains(string(in), ordersChannel) {
+		return h.ToOrderBook(in)
+	}
+
+	return nil, nil
+
+}
+
+func (h *KrakenHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
 	const op = "KrakenHandler.ToTickers"
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
@@ -130,9 +147,9 @@ func (h *KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	if err != nil {
 		return nil, ez.New(op, ez.EINVALID, "invalid trade info", nil)
 	}
-	return &ws.TickerChan{
+	return &ws.ListenChan{
 		Pair: tradeInfo.Pair,
-		Ticks: []market.Ticker{
+		Tickers: []market.Ticker{
 			{
 				Time:   time.Now().Unix(),
 				Volume: tradeInfo.LastVolume,
@@ -142,7 +159,7 @@ func (h *KrakenHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
+func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	const op = "KrakenHandler.ToOrderBook"
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) || strings.Contains(string(in), `"as"`) {
@@ -153,7 +170,9 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	if err != nil {
 		return nil, ez.New(op, ez.EINVALID, "invalid ticker", err)
 	}
+
 	orderBook := market.OrderBook{
+		Time: time.Now().Unix(),
 		Bids: []market.OrderBookRow{
 			{
 				Price:       krakenTicker.BidPrice[0],
@@ -169,47 +188,68 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 			},
 		},
 	}
-	return &ws.OrderBookChan{
+
+	return &ws.ListenChan{
 		Pair:      m,
 		OrderBook: orderBook,
 	}, nil
 }
 
-func (h KrakenHandler) GetBaseEndpoint([]market.Pair, genericws.ChannelType) string {
-	return "wss://ws.kraken.com"
+func (h KrakenHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://ws.kraken.com",
+	}, nil
 }
 
-func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channel genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "KrakenHandler.GetSubscriptionRequests"
 
-	var name string
-	if channel == "ticker" {
-		name = "trade"
-	} else if channel == "orderbook" {
-		name = "ticker"
+	var requests []genericws.SubscriptionRequest
+	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
+	for _, channel := range channels {
+		channelsMap[channel.Type] = true
 	}
 
-	var requests []genericws.SubscriptionRequest
 	pairsArray := make([]string, len(pairs))
 
 	for i, pair := range pairs {
 		pairsArray[i] = pair.String()[:len(pair.String())-1]
 	}
 
-	subscriptionMessage := KrakenSubscriptionRequest{
-		Event: "subscribe",
-		Pair:  pairsArray,
-		Subscription: KrakenSubscription{
-			Name: name,
-		},
+	if channelsMap[genericws.OrderBookChannel] {
+		subscriptionMessage := KrakenSubscriptionRequest{
+			Event: "subscribe",
+			Pair:  pairsArray,
+			Subscription: KrakenSubscription{
+				Name: ordersChannel,
+			},
+		}
+
+		request, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.New(op, ez.EINTERNAL, "Error parsing Subscription Message Request", err)
+		}
+
+		requests = append(requests, request)
 	}
 
-	request, err := json.Marshal(subscriptionMessage)
-	if err != nil {
-		return nil, ez.New(op, ez.EINTERNAL, "Error parsing Subscription Message Request", err)
+	if channelsMap[genericws.TickerChannel] {
+		subscriptionMessage := KrakenSubscriptionRequest{
+			Event: "subscribe",
+			Pair:  pairsArray,
+			Subscription: KrakenSubscription{
+				Name: tickerChannel,
+			},
+		}
+
+		request, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.New(op, ez.EINTERNAL, "Error parsing Subscription Message Request", err)
+		}
+
+		requests = append(requests, request)
 	}
 
-	requests = append(requests, request)
 	return requests, nil
 }
 
