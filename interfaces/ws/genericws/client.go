@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	waitTimeForNewConn     = 100 * time.Millisecond
+	waitTimeForNewConn     = 1000 * time.Millisecond
 	connectionRetries      = 3
 	subscriptionVerifyTime = time.Second * 5
 )
@@ -146,10 +146,7 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 		return nil, ez.New(op, ez.EINVALID, ErrSubscriptionPairs, nil)
 	}
 
-	wsConn, err := c.createConnection(ctx)
-	if err != nil {
-		return nil, ez.Wrap(op, err)
-	}
+	wsConn := &wsConnHandler{}
 
 	listenChan := make(chan ws.ListenChan, c.buffer)
 	errCounter := 0
@@ -161,10 +158,18 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 				close(listenChan)
 				return
 			default:
-				if wsConn.IsClose() {
-					time.Sleep(waitTimeForNewConn)
-					wsConn, _ = c.createConnection(ctx)
-					if wsConn.IsClose() {
+				if wsConn == nil || wsConn.IsClose() {
+					var cErr error
+					wsConn, cErr = c.createConnection(ctx)
+					if cErr != nil {
+						log.Error().
+							Str("OP", op).
+							Str("Exchange", c.name).
+							Err(cErr).
+							Msg("error creating connection")
+					}
+					if wsConn == nil || wsConn.IsClose() {
+						time.Sleep(waitTimeForNewConn)
 						continue
 					}
 				}

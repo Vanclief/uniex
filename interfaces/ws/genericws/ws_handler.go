@@ -1,6 +1,7 @@
 package genericws
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -79,10 +80,13 @@ func (w *wsConnHandler) WriteMessage(messageType int, data []byte) error {
 	return err
 }
 
-func (w *wsConnHandler) ReadMessage() (p []byte, err error) {
+func (w *wsConnHandler) ReadMessage() ([]byte, error) {
 	_, bs, bErr := w.conn.ReadMessage()
 	if bErr != nil {
-		if _, ok := bErr.(*websocket.CloseError); ok {
+		if _, ok := bErr.(*websocket.CloseError); ok ||
+			strings.Contains(bErr.Error(), "timeout") ||
+			strings.Contains(bErr.Error(), "assign requested address") ||
+			websocket.IsUnexpectedCloseError(bErr, websocket.CloseAbnormalClosure, websocket.CloseGoingAway, websocket.CloseProtocolError, websocket.CloseInternalServerErr){
 			w.conn.Close()
 			w.conn = nil
 		}
