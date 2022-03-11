@@ -228,11 +228,11 @@ func topicToMarketPair(topic string) (market.Pair, error) {
 		return market.Pair{}, ez.New(op, ez.EINTERNAL, "error parsing topic", nil)
 	}
 	return market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: baseQuote[0],
 			Name:   baseQuote[0],
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: baseQuote[1],
 			Name:   baseQuote[1],
 		},
@@ -247,11 +247,11 @@ func getPairFromKucoinOrder(topic string) (market.Pair, error) {
 	}
 	firstPair := strings.Split(pair[1], "-")
 	return market.Pair{
-		Base: &market.Asset{
+		Base: market.Asset{
 			Symbol: firstPair[0],
 			Name:   firstPair[0],
 		},
-		Quote: &market.Asset{
+		Quote: market.Asset{
 			Symbol: firstPair[1],
 			Name:   firstPair[1],
 		},
