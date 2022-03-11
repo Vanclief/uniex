@@ -11,6 +11,11 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
+const (
+	ordersChannel = "orderbook"
+	tickerChannel = "ticker"
+)
+
 type FTXHandler struct {
 	Ask market.OrderBookRow
 	Bid market.OrderBookRow
@@ -44,7 +49,27 @@ func ftxDataToMarketTicker(data FTXTickerData) market.Ticker {
 	}
 }
 
-func (h FTXHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
+func (h *FTXHandler) Parse(in []byte) (*ws.ListenChan, error) {
+
+	t := FTXTickerStream{}
+
+	err := json.Unmarshal(in, &t)
+	if err != nil {
+		return nil, nil
+	}
+
+	switch t.Channel {
+	case tickerChannel:
+		return h.ToTickers(in)
+
+	case ordersChannel:
+		return h.ToOrderBook(in)
+	}
+
+	return nil, nil
+}
+
+func (h *FTXHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
 	const op = "FTXHandler.ToTickers"
 	payload := FTXTickerStream{}
 
@@ -57,9 +82,9 @@ func (h FTXHandler) ToTickers(in []byte) (*ws.TickerChan, error) {
 		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
-	return &ws.TickerChan{
-		Pair:  ftxPairToMarketPair(payload.Market),
-		Ticks: []market.Ticker{ftxDataToMarketTicker(payload.Data)},
+	return &ws.ListenChan{
+		Pair:    ftxPairToMarketPair(payload.Market),
+		Tickers: []market.Ticker{ftxDataToMarketTicker(payload.Data)},
 	}, nil
 }
 
@@ -93,8 +118,8 @@ func (h *FTXHandler) ftxAskBidsToOrderBookRow(asks, bids [][]float64) {
 	}
 }
 
-func (h FTXHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
-	const op = "BinanceHandler.ToOrderBook"
+func (h *FTXHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
+	const op = "FTXHandler.ToOrderBook"
 
 	payload := FTXOrderBookStream{}
 	if strings.Contains(string(in), `"type": "partial"`) {
@@ -112,7 +137,7 @@ func (h FTXHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 		return nil, nil
 	}
 
-	return &ws.OrderBookChan{
+	return &ws.ListenChan{
 		Pair: ftxPairToMarketPair(payload.Market),
 		OrderBook: market.OrderBook{
 			Time: time.Now().Unix(),
@@ -122,42 +147,82 @@ func (h FTXHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, nil
 }
 
-func (h FTXHandler) GetBaseEndpoint(pair []market.Pair, channelType genericws.ChannelType) string {
-	return "wss://ftx.com/ws/"
+func (h *FTXHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+	return genericws.Settings{
+		Endpoint: "wss://ftx.com/ws/",
+	}, nil
 }
 
-func (h FTXHandler) GetSubscriptionsRequests(pairs []market.Pair, channelType genericws.ChannelType) ([]genericws.SubscriptionRequest, error) {
+func (h *FTXHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "FTXHandler.GetSubscriptionsRequests"
 
-	var subscriptions []genericws.SubscriptionRequest
+	var requests []genericws.SubscriptionRequest
 
-	for _, v := range pairs {
-
-		market := v.Symbol("/")
-		if v.Quote.Symbol == "PERP" {
-			market = v.Symbol("-")
-		}
-
-		subscriptionRequest := FTXSubscribeRequest{
-			Operation: "subscribe",
-			Channel:   string(channelType),
-			Market:    market,
-		}
-		byteSubscription, err := json.Marshal(subscriptionRequest)
-		if err != nil {
-			return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription request", err)
-		}
-		subscriptions = append(subscriptions, byteSubscription)
+	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
+	for _, channel := range channels {
+		channelsMap[channel.Type] = true
 	}
 
-	return subscriptions, nil
+	for _, pair := range pairs {
+
+		if channelsMap[genericws.OrderBookChannel] {
+			request, err := getRequest(pair, ordersChannel)
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			requests = append(requests, request)
+		}
+
+		if channelsMap[genericws.TickerChannel] {
+			request, err := getRequest(pair, tickerChannel)
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			requests = append(requests, request)
+		}
+	}
+
+	return requests, nil
 }
 
 func (h FTXHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "FTXHandler.VerifySubscriptionResponse"
 
+	if strings.Contains(string(in), `"type": "error"`) {
+		return ez.New(op, ez.EINVALID, "Failed to subscribe to channel", nil)
+	}
+
 	if strings.Contains(string(in), `"type": "subscribed"`) {
 		return nil
 	}
-	return ez.New(op, ez.EINVALID, "invalid subscription response", nil)
+
+	response := FTXSubscribeResponse{}
+	err := json.Unmarshal(in, &response)
+	if err != nil {
+		return ez.Wrap(op, err)
+	}
+
+	return nil
+}
+
+func getRequest(pair market.Pair, channel string) ([]byte, error) {
+	const op = "getRequest"
+
+	market := pair.Symbol("/")
+	if pair.Quote.Symbol == "PERP" {
+		market = pair.Symbol("-")
+	}
+
+	subscriptionRequest := FTXSubscribeRequest{
+		Operation: "subscribe",
+		Channel:   string(channel),
+		Market:    market,
+	}
+
+	request, err := json.Marshal(subscriptionRequest)
+	if err != nil {
+		return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription request", err)
+	}
+
+	return request, nil
 }

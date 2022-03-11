@@ -133,7 +133,6 @@ func (h *KrakenHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	}
 
 	return nil, nil
-
 }
 
 func (h *KrakenHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
