@@ -15,20 +15,20 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type Handler struct {
+type KucoinHandler struct {
 	opts genericws.HandlerOptions
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler() *KucoinHandler {
+	return &KucoinHandler{}
 }
 
-func (h *Handler) Init(opts genericws.HandlerOptions) error {
+func (h *KucoinHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
 	return nil
 }
 
-func (p *Handler) Parse(in []byte) (*ws.ListenChan, error) {
+func (p *KucoinHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
@@ -73,7 +73,7 @@ func (p *Handler) Parse(in []byte) (*ws.ListenChan, error) {
 	return nil, nil
 }
 
-func (p *Handler) GetSettings() (genericws.Settings, error) {
+func (p *KucoinHandler) GetSettings() (genericws.Settings, error) {
 	accessToken, err := GetToken()
 	if err != nil {
 		return genericws.Settings{}, err
@@ -86,7 +86,7 @@ func (p *Handler) GetSettings() (genericws.Settings, error) {
 	}, nil
 }
 
-func (p *Handler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
+func (p *KucoinHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "kucoin.GetSubscriptionsRequests"
 	var topic string
 	for _, v := range p.opts.Pairs {
@@ -134,7 +134,7 @@ func (p *Handler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, e
 	return subRequests, nil
 }
 
-func (p *Handler) VerifySubscriptionResponse(in []byte) error {
+func (p *KucoinHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "kucoin.VerifySubscriptionResponse"
 
 	response := &SubscriptionMessageResponse{}
@@ -150,7 +150,7 @@ func (p *Handler) VerifySubscriptionResponse(in []byte) error {
 	return nil
 }
 
-func (p *Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
+func (p *KucoinHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	const op = "kucoin.ToTickers"
 
 	tradeType := TradeType{}
@@ -169,7 +169,7 @@ func (p *Handler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
 	return ticks, &pair, nil
 }
 
-func (p *Handler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
+func (p *KucoinHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
 	order := Order{}
 
 	err := json.Unmarshal(in, &order)

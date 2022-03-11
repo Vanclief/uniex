@@ -12,12 +12,18 @@ import (
 )
 
 type MEXCHandler struct {
-	Ask market.OrderBookRow
-	Bid market.OrderBookRow
+	opts genericws.HandlerOptions
+	Ask  market.OrderBookRow
+	Bid  market.OrderBookRow
 }
 
 func NewHandler() *MEXCHandler {
 	return &MEXCHandler{}
+}
+
+func (h *MEXCHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
 }
 
 func (h *MEXCHandler) UpdateOrderBook(data MEXCOrderBookData) {
@@ -130,23 +136,23 @@ func (h *MEXCHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	}, nil
 }
 
-func (h *MEXCHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (h *MEXCHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://contract.mexc.com/ws",
 	}, nil
 }
 
-func (h *MEXCHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h *MEXCHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "MEXCHandler.GetSubscriptionsRequests"
 
 	var subscriptions []genericws.SubscriptionRequest
 
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(h.opts.Channels))
+	for _, channel := range h.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	for _, pair := range pairs {
+	for _, pair := range h.opts.Pairs {
 		if channelsMap[genericws.OrderBookChannel] {
 			request, err := getRequest(pair, "sub.depth")
 			if err != nil {

@@ -17,12 +17,18 @@ const (
 )
 
 type FTXHandler struct {
-	Ask market.OrderBookRow
-	Bid market.OrderBookRow
+	opts genericws.HandlerOptions
+	Ask  market.OrderBookRow
+	Bid  market.OrderBookRow
 }
 
 func NewHandler() FTXHandler {
 	return FTXHandler{}
+}
+
+func (h *FTXHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
 }
 
 func ftxPairToMarketPair(rawPair string) market.Pair {
@@ -147,23 +153,23 @@ func (h *FTXHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	}, nil
 }
 
-func (h *FTXHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (h *FTXHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://ftx.com/ws/",
 	}, nil
 }
 
-func (h *FTXHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h *FTXHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "FTXHandler.GetSubscriptionsRequests"
 
 	var requests []genericws.SubscriptionRequest
 
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(h.opts.Channels))
+	for _, channel := range h.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	for _, pair := range pairs {
+	for _, pair := range h.opts.Pairs {
 
 		if channelsMap[genericws.OrderBookChannel] {
 			request, err := getRequest(pair, ordersChannel)

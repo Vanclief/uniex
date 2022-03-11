@@ -18,6 +18,7 @@ const (
 )
 
 type KrakenHandler struct {
+	opts      genericws.HandlerOptions
 	AskPrice  float64
 	AskVolume float64
 	BidPrice  float64
@@ -32,6 +33,11 @@ type TradeInfo struct {
 
 func NewHandler() KrakenHandler {
 	return KrakenHandler{}
+}
+
+func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
 }
 
 func getTickerArrays(in string) [][]float64 {
@@ -194,24 +200,24 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	}, nil
 }
 
-func (h KrakenHandler) GetSettings(pairs []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
+func (h KrakenHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://ws.kraken.com",
 	}, nil
 }
 
-func (h KrakenHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "KrakenHandler.GetSubscriptionRequests"
 
 	var requests []genericws.SubscriptionRequest
-	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
-	for _, channel := range channels {
+	channelsMap := make(map[genericws.ChannelType]bool, len(h.opts.Channels))
+	for _, channel := range h.opts.Channels {
 		channelsMap[channel.Type] = true
 	}
 
-	pairsArray := make([]string, len(pairs))
+	pairsArray := make([]string, len(h.opts.Pairs))
 
-	for i, pair := range pairs {
+	for i, pair := range h.opts.Pairs {
 		pairsArray[i] = pair.String()[:len(pair.String())-1]
 	}
 
