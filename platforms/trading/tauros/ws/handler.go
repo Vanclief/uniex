@@ -136,28 +136,37 @@ func (h TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, 
 	return &orderBook, &pair, nil
 }
 
-func (h TaurosHandler) GetSettings(pair []market.Pair) (genericws.Settings, error) {
+func (h TaurosHandler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://wsv2.tauros.io",
 	}, nil
 }
 
-func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair) ([]genericws.SubscriptionRequest, error) {
+func (h TaurosHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
 
-	for _, pair := range pairs {
-		request, err := getRequest(pair, ordersChannel)
-		if err != nil {
-			return nil, ez.Wrap(op, err)
-		}
-		requests = append(requests, request)
+	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
+	for _, channel := range channels {
+		channelsMap[channel.Type] = true
+	}
 
-		request, err = getRequest(pair, tickerChannel)
-		if err != nil {
-			return nil, ez.Wrap(op, err)
+	for _, pair := range pairs {
+		if channelsMap[genericws.OrderBookChannel] {
+			request, err := getRequest(pair, ordersChannel)
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			requests = append(requests, request)
 		}
-		requests = append(requests, request)
+
+		if channelsMap[genericws.TickerChannel] {
+			request, err := getRequest(pair, tickerChannel)
+			if err != nil {
+				return nil, ez.Wrap(op, err)
+			}
+			requests = append(requests, request)
+		}
 	}
 
 	return requests, nil

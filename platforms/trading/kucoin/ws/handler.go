@@ -66,7 +66,7 @@ func (p Handler) Parse(in []byte) (*ws.ListenChan, error) {
 	return nil, nil
 }
 
-func (p Handler) GetSettings(pair []market.Pair) (genericws.Settings, error) {
+func (p Handler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
 	accessToken, err := GetToken()
 	if err != nil {
 		return genericws.Settings{}, err
@@ -79,39 +79,52 @@ func (p Handler) GetSettings(pair []market.Pair) (genericws.Settings, error) {
 	}, nil
 }
 
-func (p Handler) GetSubscriptionsRequests(pair []market.Pair) ([]genericws.SubscriptionRequest, error) {
+func (p Handler) GetSubscriptionsRequests(pair []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
 	const op = "kucoin.GetSubscriptionsRequests"
 	var topic string
 	for _, v := range pair {
 		topic += fmt.Sprintf("%s-%s,", v.Base.Symbol, v.Quote.Symbol)
 	}
 	topic = topic[:len(topic)-1]
-	subscriptionMessage := SubscriptionMessageRequest{
-		ID:             1,
-		Type:           "subscribe",
-		Topic:          fmt.Sprintf("/market/ticker:%s", topic),
-		PrivateChannel: false,
-		Response:       true,
+
+	channelsMap := make(map[genericws.ChannelType]bool, len(channels))
+	for _, channel := range channels {
+		channelsMap[channel.Type] = true
 	}
 
-	bsSubTicker, err := json.Marshal(subscriptionMessage)
-	if err != nil {
-		return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription message", err)
+	subRequests := make([]genericws.SubscriptionRequest, 0, len(channels))
+
+	if channelsMap[genericws.TickerChannel] {
+		subscriptionMessage := SubscriptionMessageRequest{
+			ID:             1,
+			Type:           "subscribe",
+			Topic:          fmt.Sprintf("/market/ticker:%s", topic),
+			PrivateChannel: false,
+			Response:       true,
+		}
+		bsSubTicker, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription message", err)
+		}
+		subRequests = append(subRequests, bsSubTicker)
 	}
 
-	subscriptionMessage = SubscriptionMessageRequest{
-		ID:             1,
-		Type:           "subscribe",
-		Topic:          fmt.Sprintf("/spotMarket/level2Depth5:%s", topic),
-		PrivateChannel: false,
-		Response:       true,
+	if channelsMap[genericws.OrderBookChannel] {
+		subscriptionMessage := SubscriptionMessageRequest{
+			ID:             1,
+			Type:           "subscribe",
+			Topic:          fmt.Sprintf("/spotMarket/level2Depth5:%s", topic),
+			PrivateChannel: false,
+			Response:       true,
+		}
+		bsSubOrder, err := json.Marshal(subscriptionMessage)
+		if err != nil {
+			return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription message", err)
+		}
+		subRequests = append(subRequests, bsSubOrder)
 	}
-	bsSubOrder, err := json.Marshal(subscriptionMessage)
-	if err != nil {
-		return nil, ez.New(op, ez.EINTERNAL, "error marshalling subscription message", err)
-	}
-
-	return []genericws.SubscriptionRequest{bsSubOrder, bsSubTicker}, nil
+	
+	return subRequests, nil
 }
 
 func (p Handler) VerifySubscriptionResponse(in []byte) error {

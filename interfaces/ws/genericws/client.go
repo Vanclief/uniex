@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	waitTimeForNewConn = 100 * time.Millisecond
-	connectionRetries  = 3
+	waitTimeForNewConn     = 100 * time.Millisecond
+	connectionRetries      = 3
+	subscriptionVerifyTime = time.Second * 5
 )
 
 type baseClient struct {
@@ -24,6 +25,7 @@ type baseClient struct {
 	// buffer for bursts or spikes in data
 	buffer                        int
 	overrideExpectedVerifications int
+	channels                      []ChannelOpts
 }
 
 func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
@@ -33,6 +35,7 @@ func NewClient(handler WebsocketHandler, opts ...Option) (*baseClient, error) {
 		subscriptionPairs: []market.Pair{},
 		handler:           handler,
 		buffer:            1000,
+		channels:          defaultChannels,
 	}
 	for _, opt := range opts {
 		if err := opt.applyOption(c); err != nil {
@@ -47,7 +50,7 @@ func (c *baseClient) createConnection(ctx context.Context) (*wsConnHandler, erro
 	const op = "baseClient.createConnection"
 	var err error
 
-	settings, err := c.handler.GetSettings(c.subscriptionPairs)
+	settings, err := c.handler.GetSettings(c.subscriptionPairs, c.channels)
 	if err != nil {
 		return nil, ez.New(op, ez.EINTERNAL, "", err)
 	}
@@ -75,16 +78,20 @@ func (c *baseClient) createConnection(ctx context.Context) (*wsConnHandler, erro
 func (c *baseClient) subscribe(ctx context.Context, wsConn *wsConnHandler) error {
 	const op = "baseClient.subscribe"
 
-	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs)
+	requests, err := c.handler.GetSubscriptionsRequests(c.subscriptionPairs, c.channels)
 	if err != nil {
 		msgErr := fmt.Sprintf("error creating subscription request: %s", err.Error())
 		return ez.New(op, ez.EINTERNAL, msgErr, err)
 	}
 
+	if len(requests) == 0 {
+		return fmt.Errorf("at least one subscription must be set")
+	}
+
 	for _, request := range requests {
 		err = wsConn.WriteMessage(websocket.TextMessage, request)
 		if err != nil {
-			return ez.New(op, ez.EINTERNAL, "Failed to write message", err)
+			return ez.New(op, ez.EINTERNAL, "failed to write message", err)
 		}
 	}
 
@@ -98,7 +105,9 @@ func (c *baseClient) subscribe(ctx context.Context, wsConn *wsConnHandler) error
 func (c *baseClient) verifySubscriptions(ctx context.Context, wsConn *wsConnHandler, expectedRequest int) error {
 	const op = "baseClient.verifySubscriptions"
 
-	ctxDeadline, _ := context.WithTimeout(ctx, time.Second*5)
+	ctxDeadline, cancel := context.WithTimeout(ctx, subscriptionVerifyTime)
+	defer cancel()
+
 	for {
 		select {
 		case <-ctxDeadline.Done():
@@ -116,7 +125,6 @@ func (c *baseClient) verifySubscriptions(ctx context.Context, wsConn *wsConnHand
 			}
 
 			expectedRequest--
-
 			if expectedRequest == 0 {
 				return nil
 			}

@@ -27,3 +27,10 @@ func WithName(name string) Option {
 		return nil
 	})
 }
+
+func WithSelectedChannels(channels []ChannelOpts) Option {
+	return optionApplyFunc(func(client *baseClient) error {
+		client.channels = channels
+		return nil
+	})
+}
