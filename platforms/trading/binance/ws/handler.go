@@ -13,7 +13,14 @@ import (
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
 )
 
-type BinanceHandler struct{}
+type BinanceHandler struct{
+	opts genericws.HandlerOptions
+}
+
+func (h *BinanceHandler) Init(opts genericws.HandlerOptions) error {
+	h.opts = opts
+	return nil
+}
 
 func NewHandler() BinanceHandler {
 	return BinanceHandler{}
@@ -92,8 +99,8 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.OrderBookChan, error) {
 	}, nil
 }
 
-func (h *BinanceHandler) GetSettings(pair []market.Pair, channels []genericws.ChannelOpts) (genericws.Settings, error) {
-	// var pairsStr string
+func (h *BinanceHandler) GetSettings() (genericws.Settings, error) {
+	var pairsStr string
 	// if channelType == "ticker" {
 	// 	for _, singlePair := range pair {
 	// 		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@ticker/"
@@ -101,21 +108,24 @@ func (h *BinanceHandler) GetSettings(pair []market.Pair, channels []genericws.Ch
 	// } else {
 	// 	pairsStr = "!bookTicker/"
 	// }
-
-	// return fmt.Sprintf("wss://fstream.binance.com:443/stream?streams=%s", pairsStr)
+	for _, singlePair := range h.opts.Pairs {
+		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@ticker/"
+	}
+	pairsStr += "!bookTicker/"
+	
 	return genericws.Settings{
-		Endpoint: "",
+		Endpoint: fmt.Sprintf("wss://fstream.binance.com:443/stream?streams=%s", pairsStr),
 	}, nil
 }
 
-func (h *BinanceHandler) GetSubscriptionsRequests(pairs []market.Pair, channels []genericws.ChannelOpts) ([]genericws.SubscriptionRequest, error) {
+func (h *BinanceHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "handler.GetSubscriptionRequests"
 
-	requests := make([]genericws.SubscriptionRequest, 0, len(pairs))
+	requests := make([]genericws.SubscriptionRequest, 0, len(h.opts.Pairs))
 
 	var pairsStr []string
 
-	for _, pair := range pairs {
+	for _, pair := range h.opts.Pairs {
 		pairsStr = append(pairsStr, strings.ToLower(pair.Symbol(""))+"@ticker")
 	}
 	subscriptionMessage := SubscriptionRequest{
