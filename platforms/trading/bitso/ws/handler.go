@@ -32,10 +32,15 @@ func (h *bitsoHandler) Init(opts genericws.HandlerOptions) error {
 }
 
 func (h *bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
+
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
 		return nil, err
+	}
+
+	if t.Type == "" || t.Book == "" {
+		return nil, nil
 	}
 
 	switch t.Type {
@@ -56,6 +61,7 @@ func (h *bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
 			}, nil
 		}
 	case "trades":
+
 		pair, mErr := genericws.ToMarketPair(t.Book, "_")
 		if mErr != nil {
 			return nil, mErr

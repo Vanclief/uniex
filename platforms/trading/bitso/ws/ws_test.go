@@ -46,6 +46,7 @@ func TestWs(t *testing.T) {
 			return
 		case msg, ok := <-wsChannel:
 			assert.True(t, ok)
+			assert.NotNil(t, msg)
 
 			if msg.OrderBook.Time > 0 {
 				fmt.Println("ob", msg.OrderBook)
