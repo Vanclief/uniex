@@ -18,11 +18,7 @@ const (
 )
 
 type KrakenHandler struct {
-	opts      genericws.HandlerOptions
-	AskPrice  float64
-	AskVolume float64
-	BidPrice  float64
-	BidVolume float64
+	opts genericws.HandlerOptions
 }
 
 type TradeInfo struct {

@@ -18,8 +18,8 @@ const (
 
 type FTXHandler struct {
 	opts genericws.HandlerOptions
-	Ask  market.OrderBookRow
-	Bid  market.OrderBookRow
+	Asks map[string]market.OrderBookRow
+	Bids map[string]market.OrderBookRow
 }
 
 func NewHandler() FTXHandler {
@@ -28,129 +28,9 @@ func NewHandler() FTXHandler {
 
 func (h *FTXHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
+	h.Asks = make(map[string]market.OrderBookRow)
+	h.Bids = make(map[string]market.OrderBookRow)
 	return nil
-}
-
-func ftxPairToMarketPair(rawPair string) market.Pair {
-	pair := strings.Split(rawPair, "/")
-
-	if len(pair) != 2 {
-		pair = strings.Split(rawPair, "-")
-	}
-
-	return market.Pair{
-		Base:  market.Asset{Symbol: pair[0]},
-		Quote: market.Asset{Symbol: pair[1]},
-	}
-}
-
-func ftxDataToMarketTicker(data FTXTickerData) market.Ticker {
-	return market.Ticker{
-		Time:   int64(data.Time),
-		Ask:    data.Ask,
-		Bid:    data.Bid,
-		Last:   data.Last,
-		Volume: data.BidSize,
-		VWAP:   ((data.Ask * data.AskSize) + (data.Bid * data.BidSize)) / (data.AskSize + data.BidSize),
-	}
-}
-
-func (h *FTXHandler) Parse(in []byte) (*ws.ListenChan, error) {
-
-	t := FTXTickerStream{}
-
-	err := json.Unmarshal(in, &t)
-	if err != nil {
-		return nil, nil
-	}
-
-	switch t.Channel {
-	case tickerChannel:
-		return h.ToTickers(in)
-
-	case ordersChannel:
-		return h.ToOrderBook(in)
-	}
-
-	return nil, nil
-}
-
-func (h *FTXHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
-	const op = "FTXHandler.ToTickers"
-	payload := FTXTickerStream{}
-
-	if !strings.Contains(string(in), `"type": "update"`) {
-		return nil, nil
-	}
-
-	err := json.Unmarshal(in, &payload)
-	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
-	}
-
-	return &ws.ListenChan{
-		Pair:    ftxPairToMarketPair(payload.Market),
-		Tickers: []market.Ticker{ftxDataToMarketTicker(payload.Data)},
-	}, nil
-}
-
-func (h *FTXHandler) ftxAskBidsToOrderBookRow(asks, bids [][]float64) {
-	if len(asks) > 0 {
-		for _, ask := range asks {
-			volume := ask[1]
-			if volume > 0 {
-				h.Ask = market.OrderBookRow{
-					Price:       ask[0],
-					Volume:      ask[1],
-					AccumVolume: ask[1],
-				}
-
-			}
-		}
-	}
-
-	if len(bids) > 0 {
-		for _, bid := range bids {
-			volume := bid[1]
-			if volume > 0 {
-				h.Bid = market.OrderBookRow{
-					Price:       bid[0],
-					Volume:      bid[1],
-					AccumVolume: bid[1],
-				}
-
-			}
-		}
-	}
-}
-
-func (h *FTXHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
-	const op = "FTXHandler.ToOrderBook"
-
-	payload := FTXOrderBookStream{}
-	if strings.Contains(string(in), `"type": "partial"`) {
-		return nil, nil
-	}
-
-	err := json.Unmarshal(in, &payload)
-	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
-	}
-
-	h.ftxAskBidsToOrderBookRow(payload.Data.Asks, payload.Data.Bids)
-
-	if h.Ask.Price == 0 || h.Bid.Price == 0 {
-		return nil, nil
-	}
-
-	return &ws.ListenChan{
-		Pair: ftxPairToMarketPair(payload.Market),
-		OrderBook: market.OrderBook{
-			Time: time.Now().Unix(),
-			Asks: []market.OrderBookRow{h.Ask},
-			Bids: []market.OrderBookRow{h.Bid},
-		},
-	}, nil
 }
 
 func (h *FTXHandler) GetSettings() (genericws.Settings, error) {
@@ -209,6 +89,142 @@ func (h FTXHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	return nil
+}
+
+func (h *FTXHandler) Parse(in []byte) (*ws.ListenChan, error) {
+
+	t := FTXTickerStream{}
+
+	err := json.Unmarshal(in, &t)
+	if err != nil {
+		return nil, nil
+	}
+
+	switch t.Channel {
+	case tickerChannel:
+		return h.toTickers(in)
+
+	case ordersChannel:
+		return h.toOrderBook(in)
+	}
+
+	return nil, nil
+}
+
+func (h *FTXHandler) toTickers(in []byte) (*ws.ListenChan, error) {
+	const op = "FTXHandler.toTickers"
+	payload := FTXTickerStream{}
+
+	if !strings.Contains(string(in), `"type": "update"`) {
+		return nil, nil
+	}
+
+	err := json.Unmarshal(in, &payload)
+	if err != nil {
+		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+	}
+
+	return &ws.ListenChan{
+		Pair:    ftxPairToMarketPair(payload.Market),
+		Tickers: []market.Ticker{ftxDataToMarketTicker(payload.Data)},
+	}, nil
+}
+
+func ftxPairToMarketPair(rawPair string) market.Pair {
+	pair := strings.Split(rawPair, "/")
+
+	if len(pair) != 2 {
+		pair = strings.Split(rawPair, "-")
+	}
+
+	return market.Pair{
+		Base:  market.Asset{Symbol: pair[0]},
+		Quote: market.Asset{Symbol: pair[1]},
+	}
+}
+
+func ftxDataToMarketTicker(data FTXTickerData) market.Ticker {
+	return market.Ticker{
+		Time:   int64(data.Time),
+		Ask:    data.Ask,
+		Bid:    data.Bid,
+		Last:   data.Last,
+		Volume: data.BidSize,
+		VWAP:   ((data.Ask * data.AskSize) + (data.Bid * data.BidSize)) / (data.AskSize + data.BidSize),
+	}
+}
+
+func (h *FTXHandler) toOrderBook(in []byte) (*ws.ListenChan, error) {
+	const op = "FTXHandler.toOrderBook"
+
+	stream := FTXOrderBookStream{}
+	if strings.Contains(string(in), `"type": "partial"`) {
+		return nil, nil
+	}
+
+	err := json.Unmarshal(in, &stream)
+	if err != nil {
+		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+	}
+
+	h.ftxAskBidsToOrderBookRow(stream)
+
+	ask, ok := h.Asks[stream.Market]
+	if !ok {
+		return nil, nil
+	}
+
+	bid, ok := h.Bids[stream.Market]
+	if !ok {
+		return nil, nil
+	}
+
+	if ask.Price == 0 || bid.Price == 0 {
+		return nil, nil
+	}
+
+	return &ws.ListenChan{
+		Pair: ftxPairToMarketPair(stream.Market),
+		OrderBook: market.OrderBook{
+			Time: time.Now().Unix(),
+			Asks: []market.OrderBookRow{ask},
+			Bids: []market.OrderBookRow{bid},
+		},
+	}, nil
+}
+
+func (h *FTXHandler) ftxAskBidsToOrderBookRow(stream FTXOrderBookStream) {
+
+	asks := stream.Data.Asks
+	bids := stream.Data.Bids
+
+	if len(asks) > 0 {
+		for _, ask := range asks {
+			volume := ask[1]
+			if volume > 0 {
+				ask := market.OrderBookRow{
+					Price:       ask[0],
+					Volume:      ask[1],
+					AccumVolume: ask[1],
+				}
+				h.Asks[stream.Market] = ask
+			}
+		}
+	}
+
+	if len(bids) > 0 {
+		for _, bid := range bids {
+			volume := bid[1]
+			if volume > 0 {
+				bid := market.OrderBookRow{
+					Price:       bid[0],
+					Volume:      bid[1],
+					AccumVolume: bid[1],
+				}
+				h.Bids[stream.Market] = bid
+			}
+		}
+	}
 }
 
 func getRequest(pair market.Pair, channel string) ([]byte, error) {

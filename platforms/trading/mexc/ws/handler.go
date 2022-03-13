@@ -13,8 +13,8 @@ import (
 
 type MEXCHandler struct {
 	opts genericws.HandlerOptions
-	Ask  market.OrderBookRow
-	Bid  market.OrderBookRow
+	Ask  map[string]market.OrderBookRow
+	Bid  map[string]market.OrderBookRow
 }
 
 func NewHandler() *MEXCHandler {
