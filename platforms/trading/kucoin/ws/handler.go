@@ -28,29 +28,30 @@ func (h *KucoinHandler) Init(opts genericws.HandlerOptions) error {
 	return nil
 }
 
-func (p *KucoinHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (p *KucoinHandler) Parse(in []byte) (ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
-		return nil, err
+		return ws.ListenChan{}, err
 	}
 
 	if t.Type == "error" {
-		return nil, fmt.Errorf("%s", string(in))
+		return ws.ListenChan{}, fmt.Errorf("%s", string(in))
 	}
 
 	if t.Type != "message" {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	switch t.Subject {
 	case "level2":
 		ob, pair, pErr := p.toOrderBook(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
 		if ob != nil {
-			return &ws.ListenChan{
+			return ws.ListenChan{
+				IsValid: true,
 				Type:      ws.OrderBookType,
 				Pair:      *pair,
 				OrderBook: *ob,
@@ -59,10 +60,11 @@ func (p *KucoinHandler) Parse(in []byte) (*ws.ListenChan, error) {
 	case "trade.ticker":
 		ticks, pair, pErr := p.toTickers(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
 		if ticks != nil {
-			return &ws.ListenChan{
+			return ws.ListenChan{
+				IsValid: true,
 				Type:    ws.TickerType,
 				Pair:    *pair,
 				Tickers: ticks,
@@ -70,7 +72,7 @@ func (p *KucoinHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
 func (p *KucoinHandler) GetSettings() (genericws.Settings, error) {

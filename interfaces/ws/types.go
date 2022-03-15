@@ -26,4 +26,5 @@ type ListenChan struct {
 	Pair      market.Pair
 	OrderBook market.OrderBook
 	Tickers   []market.Ticker
+	IsValid   bool
 }

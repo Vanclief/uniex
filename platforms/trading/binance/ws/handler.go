@@ -22,11 +22,11 @@ func (h *BinanceHandler) Init(opts genericws.HandlerOptions) error {
 	return nil
 }
 
-func NewHandler() BinanceHandler {
-	return BinanceHandler{}
+func NewHandler() *BinanceHandler {
+	return &BinanceHandler{}
 }
 
-func (h *BinanceHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *BinanceHandler) Parse(in []byte) (ws.ListenChan, error) {
 
 	if strings.Contains(string(in), `@bookTicker`) {
 		return h.ToOrderBook(in)
@@ -34,46 +34,47 @@ func (h *BinanceHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		return h.ToTickers(in)
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
-func (h *BinanceHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
+func (h *BinanceHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 	const op = "BinanceHandler.ToTickers"
 
 	payload := StreamTickerEvent{}
 	if strings.Contains(string(in), `"result"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
 	marketTicker := tickerToMarketTicker(payload.Data)
 	pair, err := pairStringToPairStruct(payload.Data.Symbol)
 	if err != nil {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	ticks := []market.Ticker{marketTicker}
-	return &ws.ListenChan{
+	return ws.ListenChan{
+		IsValid: true,
 		Pair:    pair,
 		Tickers: ticks,
 	}, nil
 }
 
-func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
+func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "BinanceHandler.ToOrderBook"
 
 	payload := StreamOrderBookEvent{}
 	if strings.Contains(string(in), `"result"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
 	askPrice, _ := strconv.ParseFloat(payload.Data.BestAskPrice, 64)
@@ -96,9 +97,10 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 	}
 	pair, err := pairStringToPairStruct(payload.Data.Symbol)
 	if err != nil {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
-	return &ws.ListenChan{
+	return ws.ListenChan{
+		IsValid: true,
 		Pair:      pair,
 		OrderBook: orderBook,
 	}, nil

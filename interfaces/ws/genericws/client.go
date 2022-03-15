@@ -190,8 +190,8 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 					continue
 				}
 
-				if data != nil {
-					listenChan <- *data
+				if data.IsValid {
+					listenChan <- data
 				}
 			}
 		}

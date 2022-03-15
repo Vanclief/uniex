@@ -30,34 +30,34 @@ func (h *TaurosHandler) Init(opts genericws.HandlerOptions) error {
 	return nil
 }
 
-func (h *TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *TaurosHandler) Parse(in []byte) (ws.ListenChan, error) {
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
-		return nil, err
+		return ws.ListenChan{}, err
 	}
 
 	switch t.Channel {
 	case "orderbook":
 		ob, pair, pErr := h.toOrderBook(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
-		if ob != nil {
-			return &ws.ListenChan{
-				Type:      ws.OrderBookType,
-				Pair:      *pair,
-				OrderBook: *ob,
-			}, nil
-		}
+		return ws.ListenChan{
+			IsValid:   true,
+			Type:      ws.OrderBookType,
+			Pair:      *pair,
+			OrderBook: ob,
+		}, nil
 
 	case "ticker":
 		ticks, pair, pErr := h.toTickers(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
 		if ticks != nil {
-			return &ws.ListenChan{
+			return ws.ListenChan{
+				IsValid: true,
 				Type:    ws.TickerType,
 				Pair:    *pair,
 				Tickers: ticks,
@@ -65,7 +65,7 @@ func (h *TaurosHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
 func (h *TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, error) {
@@ -88,11 +88,11 @@ func (h *TaurosHandler) toTickers(in []byte) ([]market.Ticker, *market.Pair, err
 	return ticks, &pair, nil
 }
 
-func (h *TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair, error) {
+func (h *TaurosHandler) toOrderBook(in []byte) (market.OrderBook, *market.Pair, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
-		return nil, nil, err
+		return market.OrderBook{}, nil, err
 	}
 	orderBook := market.OrderBook{
 		Asks: []market.OrderBookRow{},
@@ -139,9 +139,9 @@ func (h *TaurosHandler) toOrderBook(in []byte) (*market.OrderBook, *market.Pair,
 
 	pair, err := genericws.ToMarketPair(order.Type, "-")
 	if err != nil {
-		return nil, nil, err
+		return market.OrderBook{}, nil, err
 	}
-	return &orderBook, &pair, nil
+	return orderBook, &pair, nil
 }
 
 func (h *TaurosHandler) GetSettings() (genericws.Settings, error) {

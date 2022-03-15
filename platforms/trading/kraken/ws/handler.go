@@ -27,8 +27,8 @@ type TradeInfo struct {
 	Pair       market.Pair
 }
 
-func NewHandler() KrakenHandler {
-	return KrakenHandler{}
+func NewHandler() *KrakenHandler {
+	return &KrakenHandler{}
 }
 
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
@@ -126,7 +126,7 @@ func processTrade(in string) (*TradeInfo, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *KrakenHandler) Parse(in []byte) (ws.ListenChan, error) {
 
 	if strings.Contains(string(in), tickerChannel) {
 		return h.ToTickers(in)
@@ -134,22 +134,23 @@ func (h *KrakenHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		return h.ToOrderBook(in)
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
-func (h *KrakenHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
+func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 	const op = "KrakenHandler.ToTickers"
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	tradeInfo, err := processTrade(string(in))
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "invalid trade info", nil)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid trade info", nil)
 	}
-	return &ws.ListenChan{
-		Pair: tradeInfo.Pair,
+	return ws.ListenChan{
+		IsValid: true,
+		Pair:    tradeInfo.Pair,
 		Tickers: []market.Ticker{
 			{
 				Time:   time.Now().Unix(),
@@ -160,16 +161,16 @@ func (h *KrakenHandler) ToTickers(in []byte) (*ws.ListenChan, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
+func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "KrakenHandler.ToOrderBook"
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) || strings.Contains(string(in), `"as"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	krakenTicker, m, err := processTicker(string(in))
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "invalid ticker", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid ticker", err)
 	}
 
 	orderBook := market.OrderBook{
@@ -190,7 +191,8 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (*ws.ListenChan, error) {
 		},
 	}
 
-	return &ws.ListenChan{
+	return ws.ListenChan{
+		IsValid:   true,
 		Pair:      m,
 		OrderBook: orderBook,
 	}, nil

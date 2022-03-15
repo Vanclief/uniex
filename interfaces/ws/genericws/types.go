@@ -51,5 +51,5 @@ type WebsocketHandler interface {
 	GetSettings() (Settings, error)
 	GetSubscriptionsRequests() ([]SubscriptionRequest, error)
 	VerifySubscriptionResponse(response []byte) error
-	Parse(in []byte) (*ws.ListenChan, error)
+	Parse(in []byte) (ws.ListenChan, error)
 }

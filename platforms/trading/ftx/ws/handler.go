@@ -22,8 +22,8 @@ type FTXHandler struct {
 	Bids map[string]market.OrderBookRow
 }
 
-func NewHandler() FTXHandler {
-	return FTXHandler{}
+func NewHandler() *FTXHandler {
+	return &FTXHandler{}
 }
 
 func (h *FTXHandler) Init(opts genericws.HandlerOptions) error {
@@ -91,13 +91,13 @@ func (h FTXHandler) VerifySubscriptionResponse(in []byte) error {
 	return nil
 }
 
-func (h *FTXHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *FTXHandler) Parse(in []byte) (ws.ListenChan, error) {
 
 	t := FTXTickerStream{}
 
 	err := json.Unmarshal(in, &t)
 	if err != nil {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	switch t.Channel {
@@ -108,23 +108,24 @@ func (h *FTXHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		return h.toOrderBook(in)
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
-func (h *FTXHandler) toTickers(in []byte) (*ws.ListenChan, error) {
+func (h *FTXHandler) toTickers(in []byte) (ws.ListenChan, error) {
 	const op = "FTXHandler.toTickers"
 	payload := FTXTickerStream{}
 
 	if !strings.Contains(string(in), `"type": "update"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
-	return &ws.ListenChan{
+	return ws.ListenChan{
+		IsValid: true,
 		Pair:    ftxPairToMarketPair(payload.Market),
 		Tickers: []market.Ticker{ftxDataToMarketTicker(payload.Data)},
 	}, nil
@@ -154,37 +155,38 @@ func ftxDataToMarketTicker(data FTXTickerData) market.Ticker {
 	}
 }
 
-func (h *FTXHandler) toOrderBook(in []byte) (*ws.ListenChan, error) {
+func (h *FTXHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "FTXHandler.toOrderBook"
 
 	stream := FTXOrderBookStream{}
 	if strings.Contains(string(in), `"type": "partial"`) {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	err := json.Unmarshal(in, &stream)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
 	h.ftxAskBidsToOrderBookRow(stream)
 
 	ask, ok := h.Asks[stream.Market]
 	if !ok {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	bid, ok := h.Bids[stream.Market]
 	if !ok {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	if ask.Price == 0 || bid.Price == 0 {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
-	return &ws.ListenChan{
-		Pair: ftxPairToMarketPair(stream.Market),
+	return ws.ListenChan{
+		IsValid: true,
+		Pair:    ftxPairToMarketPair(stream.Market),
 		OrderBook: market.OrderBook{
 			Time: time.Now().Unix(),
 			Asks: []market.OrderBookRow{ask},

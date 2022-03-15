@@ -31,47 +31,47 @@ func (h *bitsoHandler) Init(opts genericws.HandlerOptions) error {
 	return nil
 }
 
-func (h *bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *bitsoHandler) Parse(in []byte) (ws.ListenChan, error) {
 
 	t := Type{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
-		return nil, err
+		return ws.ListenChan{}, err
 	}
 
 	if t.Type == "" || t.Book == "" {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	switch t.Type {
 	case "orders":
 		pair, mErr := genericws.ToMarketPair(t.Book, "_")
 		if mErr != nil {
-			return nil, mErr
+			return ws.ListenChan{}, mErr
 		}
 		ob, pErr := h.toOrderBook(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
-		if ob != nil {
-			return &ws.ListenChan{
-				Type:      ws.OrderBookType,
-				Pair:      pair,
-				OrderBook: *ob,
-			}, nil
-		}
+		return ws.ListenChan{
+			IsValid:   true,
+			Type:      ws.OrderBookType,
+			Pair:      pair,
+			OrderBook: ob,
+		}, nil
 	case "trades":
 
 		pair, mErr := genericws.ToMarketPair(t.Book, "_")
 		if mErr != nil {
-			return nil, mErr
+			return ws.ListenChan{}, mErr
 		}
 		ticks, pErr := h.toTickers(in)
 		if pErr != nil {
-			return nil, pErr
+			return ws.ListenChan{}, pErr
 		}
 		if ticks != nil {
-			return &ws.ListenChan{
+			return ws.ListenChan{
+				IsValid: true,
 				Type:    ws.TickerType,
 				Pair:    pair,
 				Tickers: ticks,
@@ -79,7 +79,7 @@ func (h *bitsoHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		}
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
 func (h *bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
@@ -97,11 +97,11 @@ func (h *bitsoHandler) toTickers(in []byte) ([]market.Ticker, error) {
 	return ticks, nil
 }
 
-func (h *bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
+func (h *bitsoHandler) toOrderBook(in []byte) (market.OrderBook, error) {
 	order := Order{}
 	err := json.Unmarshal(in, &order)
 	if err != nil {
-		return nil, err
+		return market.OrderBook{}, err
 	}
 
 	orderBook := market.OrderBook{
@@ -145,7 +145,7 @@ func (h *bitsoHandler) toOrderBook(in []byte) (*market.OrderBook, error) {
 	}
 
 	orderBook.Time = time
-	return &orderBook, nil
+	return orderBook, nil
 }
 
 func (h *bitsoHandler) GetSettings() (genericws.Settings, error) {

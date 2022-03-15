@@ -74,12 +74,12 @@ func (h *MEXCHandler) VerifySubscriptionResponse(in []byte) error {
 	return ez.New(op, ez.EINVALID, "invalid subscription response", nil)
 }
 
-func (h *MEXCHandler) Parse(in []byte) (*ws.ListenChan, error) {
+func (h *MEXCHandler) Parse(in []byte) (ws.ListenChan, error) {
 
 	t := MEXCMsg{}
 	err := json.Unmarshal(in, &t)
 	if err != nil {
-		return nil, err
+		return ws.ListenChan{}, err
 	}
 
 	switch t.Channel {
@@ -89,21 +89,21 @@ func (h *MEXCHandler) Parse(in []byte) (*ws.ListenChan, error) {
 		return h.toOrderBook(in)
 	}
 
-	return nil, nil
+	return ws.ListenChan{}, nil
 }
 
-func (h *MEXCHandler) toTickers(in []byte) (*ws.ListenChan, error) {
+func (h *MEXCHandler) toTickers(in []byte) (ws.ListenChan, error) {
 	const op = "MEXCHandler.toTickers"
 	payload := MEXCTickerPayload{}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
 	pair, err := mexcPairToMarketPair(payload.Data.Symbol)
 	if err != nil {
-		return nil, ez.Wrap(op, err)
+		return ws.ListenChan{}, ez.Wrap(op, err)
 	}
 
 	marketTicker := market.Ticker{
@@ -114,44 +114,46 @@ func (h *MEXCHandler) toTickers(in []byte) (*ws.ListenChan, error) {
 		Volume: 0,
 		VWAP:   0,
 	}
-	return &ws.ListenChan{
+	return ws.ListenChan{
+		IsValid: true,
 		Pair:    pair,
 		Tickers: []market.Ticker{marketTicker},
 	}, nil
 }
 
-func (h *MEXCHandler) toOrderBook(in []byte) (*ws.ListenChan, error) {
+func (h *MEXCHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "MEXCHandler.toOrderBook"
 	payload := MEXCOrderBookPayload{}
 
 	err := json.Unmarshal(in, &payload)
 	if err != nil {
-		return nil, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
 	pair, err := mexcPairToMarketPair(payload.Symbol)
 	if err != nil {
-		return nil, ez.Wrap(op, err)
+		return ws.ListenChan{}, ez.Wrap(op, err)
 	}
 
 	h.updateOrderBook(payload)
 
 	ask, ok := h.Asks[payload.Symbol]
 	if !ok {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	bid, ok := h.Bids[payload.Symbol]
 	if !ok {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
 	if ask.Price == 0 || bid.Price == 0 {
-		return nil, nil
+		return ws.ListenChan{}, nil
 	}
 
-	return &ws.ListenChan{
-		Pair: pair,
+	return ws.ListenChan{
+		IsValid: true,
+		Pair:    pair,
 		OrderBook: market.OrderBook{
 			Time: time.Now().Unix(),
 			Asks: []market.OrderBookRow{ask},
