@@ -72,7 +72,7 @@ func (w *wsConnHandler) IsClose() bool {
 func (w *wsConnHandler) WriteMessage(messageType int, data []byte) error {
 	err := w.conn.WriteMessage(messageType, data)
 	if err != nil {
-		if _, ok := err.(*websocket.CloseError); ok {
+		if isConnError(err) {
 			w.conn.Close()
 			w.conn = nil
 		}
@@ -81,15 +81,27 @@ func (w *wsConnHandler) WriteMessage(messageType int, data []byte) error {
 }
 
 func (w *wsConnHandler) ReadMessage() ([]byte, error) {
-	_, bs, bErr := w.conn.ReadMessage()
-	if bErr != nil {
-		if _, ok := bErr.(*websocket.CloseError); ok ||
-			strings.Contains(bErr.Error(), "timeout") ||
-			strings.Contains(bErr.Error(), "assign requested address") ||
-			websocket.IsUnexpectedCloseError(bErr, websocket.CloseAbnormalClosure, websocket.CloseGoingAway, websocket.CloseProtocolError, websocket.CloseInternalServerErr){
+	_, bs, err := w.conn.ReadMessage()
+	if err != nil {
+		if isConnError(err) {
 			w.conn.Close()
 			w.conn = nil
 		}
 	}
-	return bs, bErr
+	return bs, err
+}
+
+func isConnError(err error) bool {
+	if _, ok := err.(*websocket.CloseError); ok ||
+		strings.Contains(err.Error(), "timeout") ||
+		strings.Contains(err.Error(), "connection reset by peer") ||
+		strings.Contains(err.Error(), "assign requested address") ||
+		websocket.IsUnexpectedCloseError(err,
+			websocket.CloseAbnormalClosure,
+			websocket.CloseGoingAway,
+			websocket.CloseProtocolError,
+			websocket.CloseInternalServerErr){
+		return true
+	}
+	return false
 }
