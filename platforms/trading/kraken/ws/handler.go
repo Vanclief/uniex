@@ -263,5 +263,9 @@ func (h KrakenHandler) VerifySubscriptionResponse(in []byte) error {
 		return nil
 	}
 
+	if strings.Contains(string(in), `"status":"online"`) {
+		return nil
+	}
+
 	return ez.New(op, ez.EINTERNAL, "Error subscribing to Kraken", nil)
 }
