@@ -3,6 +3,7 @@ package genericws
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -151,6 +152,15 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 	listenChan := make(chan ws.ListenChan, c.buffer)
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().
+					Str("OP", op).
+					Str("Exchange", c.name).
+					Msg(fmt.Sprintf("stackatrace: \n %s", debug.Stack()))
+			}
+		}()
+
 		for {
 			select {
 			case <-ctx.Done():
