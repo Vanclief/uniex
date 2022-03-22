@@ -194,7 +194,7 @@ func (h *bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	if response.Response != "ok" {
-		msg := fmt.Sprintf("Error on very subscription response: %s", response.Response)
+		msg := fmt.Sprintf("Error on verify subscription response\ninput: %s\nParsed: %s", string(in), response.Response)
 		return ez.New(op, ez.EINTERNAL, msg, nil)
 	}
 
