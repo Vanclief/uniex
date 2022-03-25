@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,8 +20,8 @@ const (
 
 type KrakenHandler struct {
 	opts genericws.HandlerOptions
-	asks map[string][]market.OrderBookRow
-	bids map[string][]market.OrderBookRow
+	asks map[string]map[float64]float64
+	bids map[string]map[float64]float64
 }
 
 type TradeInfo struct {
@@ -35,33 +36,27 @@ func NewHandler() *KrakenHandler {
 
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
-	h.asks = make(map[string][]market.OrderBookRow)
-	h.bids = make(map[string][]market.OrderBookRow)
+	h.asks = make(map[string]map[float64]float64)
+	h.bids = make(map[string]map[float64]float64)
 	return nil
 }
 
-func getTickerArrays(in string) [][]float64 {
+func getTickerArrays(in string) [][][]float64 {
 	startIndex := strings.Index(in, `{`)
-
-	var tickerContent string
-	for i := startIndex; i < len(in); i++ {
-		if in[i] == '}' {
-			tickerContent = in[startIndex : i+1]
-			break
-		}
-	}
+	endIndex := strings.LastIndex(in, `}`)
+	tickerContent := in[startIndex : endIndex+1]
 
 	splitByPoints := strings.Split(tickerContent, ":")
 
-	var arrays [][]float64
+	var arrays [][][]float64
 	for _, v := range splitByPoints {
-		closingBracketIndex := strings.Index(v, "]")
+		closingBracketIndex := strings.Index(v, "]]")
 		if closingBracketIndex == -1 {
 			continue
 		}
-		array := v[:closingBracketIndex+1]
+		array := v[:closingBracketIndex+2]
 		array = strings.ReplaceAll(array, `"`, "")
-		var arrayFloat []float64
+		var arrayFloat [][]float64
 		err := json.Unmarshal([]byte(array), &arrayFloat)
 		if err != nil {
 			return nil
@@ -84,28 +79,28 @@ func pairStringToMarketPair(in string) market.Pair {
 	}
 }
 
-func processTicker(in string) (*KrakenTickerContent, market.Pair, error) {
-	const op = "KrakenHandler.ToTickers.processTicker"
-	arrays := getTickerArrays(in)
-	if len(arrays) != 9 {
-		return nil, market.Pair{}, ez.New(op, ez.EINVALID, "invalid ticker arrays length", nil)
-	}
-
-	pair := strings.Split(in, `"ticker",`)[1]
-	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
-
-	return &KrakenTickerContent{
-		AskPrice:       arrays[0],
-		BidPrice:       arrays[1],
-		ClosePrice:     arrays[2],
-		Volume:         arrays[3],
-		VWAP:           arrays[4],
-		NumberOfTrades: arrays[5],
-		LowPrice:       arrays[6],
-		HighPrice:      arrays[7],
-		OpenPrice:      arrays[8],
-	}, marketPair, nil
-}
+//func processTicker(in string) (*KrakenTickerContent, market.Pair, error) {
+//	const op = "KrakenHandler.ToTickers.processTicker"
+//	arrays := getTickerArrays(in)
+//	if len(arrays) != 9 {
+//		return nil, market.Pair{}, ez.New(op, ez.EINVALID, "invalid ticker arrays length", nil)
+//	}
+//
+//	pair := strings.Split(in, `"ticker",`)[1]
+//	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
+//
+//	return &KrakenTickerContent{
+//		AskPrice:       arrays[0][0],
+//		BidPrice:       arrays[0][1],
+//		ClosePrice:     arrays[0][2],
+//		Volume:         arrays[0][3],
+//		VWAP:           arrays[0][4],
+//		NumberOfTrades: arrays[0][5],
+//		LowPrice:       arrays[0][6],
+//		HighPrice:      arrays[0][7],
+//		OpenPrice:      arrays[0][8],
+//	}, marketPair, nil
+//}
 
 func processTrade(in string) (*TradeInfo, error) {
 	const op = "KrakenHandler.ToTradeInfo"
@@ -168,42 +163,75 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "KrakenHandler.ToOrderBook"
 
-	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) || strings.Contains(string(in), `"as"`) {
+	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
 		return ws.ListenChan{}, nil
 	}
 
-	krakenTicker, m, err := processTicker(string(in))
-	if err != nil {
-		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid ticker", err)
+	arrays := getTickerArrays(string(in))
+	if len(arrays) == 0 {
+		return ws.ListenChan{}, nil
 	}
 
-	newAskOrderBookRow := market.OrderBookRow{
-		Price:       krakenTicker.BidPrice[0],
-		Volume:      krakenTicker.BidPrice[2],
-		AccumVolume: krakenTicker.BidPrice[2],
-	}
-	newBidOrderBookRow := market.OrderBookRow{
-		Price:       krakenTicker.AskPrice[0],
-		Volume:      krakenTicker.AskPrice[2],
-		AccumVolume: krakenTicker.AskPrice[2],
-	}
-	h.asks[m.String()] = append(h.asks[m.String()], newAskOrderBookRow)
-	h.bids[m.String()] = append(h.bids[m.String()], newBidOrderBookRow)
+	temp := strings.Split(string(in), `,`)
+	pairString := temp[len(temp)-1][:len(temp[len(temp)-1])-1]
+	marketPair := pairStringToMarketPair(strings.ReplaceAll(pairString, `"`, ""))
 
-	if len(h.asks[m.String()]) < 20 {
-		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Too few order book rows", err)
+	if _, ok := h.asks[marketPair.String()]; !ok {
+		h.asks[marketPair.String()] = make(map[float64]float64)
 	}
 
-	orderBook := market.OrderBook{
+	if _, ok := h.bids[marketPair.String()]; !ok {
+		h.bids[marketPair.String()] = make(map[float64]float64)
+	}
+
+	asks := arrays[0]
+	var bids [][]float64
+	if len(arrays) == 2 {
+		bids = arrays[1]
+	}
+
+	for _, v := range asks {
+		h.asks[marketPair.String()][v[0]] = v[1]
+	}
+
+	for _, v := range bids {
+		h.bids[marketPair.String()][v[0]] = v[1]
+	}
+
+	accumVol := 0.0
+
+	parsedOrderBook := market.OrderBook{
 		Time: time.Now().Unix(),
-		Bids: h.bids[m.String()],
-		Asks: h.asks[m.String()],
 	}
+	for k, v := range h.asks[marketPair.String()] {
+		accumVol += v
+		parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
+			Price:       k,
+			Volume:      v,
+			AccumVolume: accumVol,
+		})
+	}
+	sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
+		return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
+	})
+
+	accumVol = 0
+	for k, v := range h.bids[marketPair.String()] {
+		accumVol += v
+		parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
+			Price:       k,
+			Volume:      v,
+			AccumVolume: accumVol,
+		})
+	}
+	sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
+		return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
+	})
 
 	return ws.ListenChan{
+		Pair:      marketPair,
+		OrderBook: parsedOrderBook,
 		IsValid:   true,
-		Pair:      m,
-		OrderBook: orderBook,
 	}, nil
 }
 

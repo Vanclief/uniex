@@ -12,7 +12,7 @@ import (
 
 func TestWs(t *testing.T) {
 
-	opts := []genericws.Option{}
+	var opts []genericws.Option
 
 	btc := market.Pair{
 		Base:  market.Asset{Symbol: "BTC"},
@@ -51,9 +51,9 @@ func TestWs(t *testing.T) {
 				fmt.Println("ob", msg.OrderBook)
 			}
 
-			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
-				fmt.Println("tick", msg.Tickers[0])
-			}
+			//if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
+			//	fmt.Println("tick", msg.Tickers[0])
+			//}
 		}
 	}
 }
