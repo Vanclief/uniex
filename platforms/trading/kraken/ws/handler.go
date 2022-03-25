@@ -13,12 +13,14 @@ import (
 )
 
 const (
-	ordersChannel = "ticker" // We use the ticker for the orders
-	tickerChannel = "trade"  // We use the trade for the ticker
+	ordersChannel = "book"  // We use the book for the orders
+	tickerChannel = "trade" // We use the trade for the ticker
 )
 
 type KrakenHandler struct {
 	opts genericws.HandlerOptions
+	asks map[string][]market.OrderBookRow
+	bids map[string][]market.OrderBookRow
 }
 
 type TradeInfo struct {
@@ -33,6 +35,8 @@ func NewHandler() *KrakenHandler {
 
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
+	h.asks = make(map[string][]market.OrderBookRow)
+	h.bids = make(map[string][]market.OrderBookRow)
 	return nil
 }
 
@@ -173,22 +177,27 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid ticker", err)
 	}
 
+	newAskOrderBookRow := market.OrderBookRow{
+		Price:       krakenTicker.BidPrice[0],
+		Volume:      krakenTicker.BidPrice[2],
+		AccumVolume: krakenTicker.BidPrice[2],
+	}
+	newBidOrderBookRow := market.OrderBookRow{
+		Price:       krakenTicker.AskPrice[0],
+		Volume:      krakenTicker.AskPrice[2],
+		AccumVolume: krakenTicker.AskPrice[2],
+	}
+	h.asks[m.String()] = append(h.asks[m.String()], newAskOrderBookRow)
+	h.bids[m.String()] = append(h.bids[m.String()], newBidOrderBookRow)
+
+	if len(h.asks[m.String()]) < 20 {
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Too few order book rows", err)
+	}
+
 	orderBook := market.OrderBook{
 		Time: time.Now().Unix(),
-		Bids: []market.OrderBookRow{
-			{
-				Price:       krakenTicker.BidPrice[0],
-				Volume:      krakenTicker.BidPrice[2],
-				AccumVolume: krakenTicker.BidPrice[2],
-			},
-		},
-		Asks: []market.OrderBookRow{
-			{
-				Price:       krakenTicker.AskPrice[0],
-				Volume:      krakenTicker.AskPrice[2],
-				AccumVolume: krakenTicker.AskPrice[2],
-			},
-		},
+		Bids: h.bids[m.String()],
+		Asks: h.asks[m.String()],
 	}
 
 	return ws.ListenChan{

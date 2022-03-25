@@ -3,22 +3,26 @@ package ws
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type BinanceHandler struct {
-	opts genericws.HandlerOptions
+	opts          genericws.HandlerOptions
+	orderBookAsks map[string]map[float64]float64
+	orderBookBids map[string]map[float64]float64
 }
 
 func (h *BinanceHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
+	h.orderBookAsks = make(map[string]map[float64]float64)
+	h.orderBookBids = make(map[string]map[float64]float64)
 	return nil
 }
 
@@ -28,7 +32,7 @@ func NewHandler() *BinanceHandler {
 
 func (h *BinanceHandler) Parse(in []byte) (ws.ListenChan, error) {
 
-	if strings.Contains(string(in), `@bookTicker`) {
+	if strings.Contains(string(in), `@bookTicker`) || strings.Contains(string(in), `@depth20@100ms`) {
 		return h.ToOrderBook(in)
 	} else if strings.Contains(string(in), `@ticker`) {
 		return h.ToTickers(in)
@@ -67,43 +71,127 @@ func (h *BinanceHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "BinanceHandler.ToOrderBook"
 
-	payload := StreamOrderBookEvent{}
-	if strings.Contains(string(in), `"result"`) {
-		return ws.ListenChan{}, nil
-	}
+	accumVol := 0.0
 
-	err := json.Unmarshal(in, &payload)
-	if err != nil {
-		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
-	}
+	if strings.Contains(string(in), `@depth20@100ms`) {
+		payload := StreamPartialOrderBookEvent{}
+		err := json.Unmarshal(in, &payload)
+		if err != nil {
+			return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		}
 
-	askPrice, _ := strconv.ParseFloat(payload.Data.BestAskPrice, 64)
-	bidPrice, _ := strconv.ParseFloat(payload.Data.BestBidPrice, 64)
-	askVolume, _ := strconv.ParseFloat(payload.Data.BestAskQuantity, 64)
-	bidVolume, _ := strconv.ParseFloat(payload.Data.BestBidQuantity, 64)
+		if _, ok := h.orderBookAsks[payload.Data.Symbol]; !ok {
+			h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
+		}
+		if _, ok := h.orderBookBids[payload.Data.Symbol]; !ok {
+			h.orderBookBids[payload.Data.Symbol] = make(map[float64]float64)
+		}
 
-	orderBook := market.OrderBook{
-		Time: time.Now().Unix(),
-		Asks: []market.OrderBookRow{{
-			Price:       askPrice,
-			Volume:      askVolume,
-			AccumVolume: askVolume,
-		}},
-		Bids: []market.OrderBookRow{{
-			Price:       bidPrice,
-			Volume:      bidVolume,
-			AccumVolume: bidVolume,
-		}},
+		for _, ask := range payload.Data.Asks {
+			priceFloat, _ := strconv.ParseFloat(ask[0], 64)
+			volFloat, _ := strconv.ParseFloat(ask[1], 64)
+			h.orderBookAsks[payload.Data.Symbol][priceFloat] = volFloat
+		}
+		for _, bid := range payload.Data.Bids {
+			priceFloat, _ := strconv.ParseFloat(bid[0], 64)
+			volFloat, _ := strconv.ParseFloat(bid[1], 64)
+			h.orderBookBids[payload.Data.Symbol][priceFloat] = volFloat
+		}
+		parsedOrderBook := market.OrderBook{
+			Time: time.Now().Unix(),
+		}
+		for k, v := range h.orderBookAsks[payload.Data.Symbol] {
+			accumVol += v
+			parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
+				Price:       k,
+				Volume:      v,
+				AccumVolume: accumVol,
+			})
+		}
+		sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
+			return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
+		})
+
+		accumVol = 0
+		for k, v := range h.orderBookBids[payload.Data.Symbol] {
+			accumVol += v
+			parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
+				Price:       k,
+				Volume:      v,
+				AccumVolume: accumVol,
+			})
+		}
+		sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
+			return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
+		})
+
+		pair, _ := pairStringToPairStruct(payload.Data.Symbol)
+
+		return ws.ListenChan{
+			IsValid:   true,
+			Pair:      pair,
+			OrderBook: parsedOrderBook,
+		}, nil
+	} else {
+		payload := StreamUpdateOrderBookEvent{}
+		err := json.Unmarshal(in, &payload)
+		if err != nil {
+			return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
+		}
+
+		if _, ok := h.orderBookAsks[payload.Data.Symbol]; !ok {
+			h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
+		}
+		if _, ok := h.orderBookBids[payload.Data.Symbol]; !ok {
+			h.orderBookBids[payload.Data.Symbol] = make(map[float64]float64)
+		}
+
+		bestAskPrice, _ := strconv.ParseFloat(payload.Data.BestAskPrice, 64)
+		bestAskQty, _ := strconv.ParseFloat(payload.Data.BestAskQuantity, 64)
+
+		h.orderBookAsks[payload.Data.Symbol][bestAskPrice] = bestAskQty
+
+		bestBidPrice, _ := strconv.ParseFloat(payload.Data.BestBidPrice, 64)
+		bestBidQty, _ := strconv.ParseFloat(payload.Data.BestBidQuantity, 64)
+
+		h.orderBookAsks[payload.Data.Symbol][bestBidPrice] = bestBidQty
+
+		parsedOrderBook := market.OrderBook{
+			Time: time.Now().Unix(),
+		}
+		for k, v := range h.orderBookAsks[payload.Data.Symbol] {
+			accumVol += v
+			parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
+				Price:       k,
+				Volume:      v,
+				AccumVolume: accumVol,
+			})
+		}
+		sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
+			return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
+		})
+
+		accumVol = 0
+		for k, v := range h.orderBookBids[payload.Data.Symbol] {
+			accumVol += v
+			parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
+				Price:       k,
+				Volume:      v,
+				AccumVolume: accumVol,
+			})
+		}
+		sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
+			return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
+		})
+
+		pair, _ := pairStringToPairStruct(payload.Data.Symbol)
+
+		return ws.ListenChan{
+			IsValid:   true,
+			Pair:      pair,
+			OrderBook: parsedOrderBook,
+		}, nil
 	}
-	pair, err := pairStringToPairStruct(payload.Data.Symbol)
-	if err != nil {
-		return ws.ListenChan{}, nil
-	}
-	return ws.ListenChan{
-		IsValid: true,
-		Pair:      pair,
-		OrderBook: orderBook,
-	}, nil
 }
 
 func (h *BinanceHandler) GetSettings() (genericws.Settings, error) {
@@ -115,6 +203,10 @@ func (h *BinanceHandler) GetSettings() (genericws.Settings, error) {
 
 	for _, singlePair := range h.opts.Pairs {
 		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@bookTicker/"
+	}
+
+	for _, singlePair := range h.opts.Pairs {
+		pairsStr += strings.ToLower(singlePair.Symbol("")) + "@depth20@100ms/"
 	}
 
 	return genericws.Settings{

@@ -51,7 +51,7 @@ func (p *KucoinHandler) Parse(in []byte) (ws.ListenChan, error) {
 		}
 		if ob != nil {
 			return ws.ListenChan{
-				IsValid: true,
+				IsValid:   true,
 				Type:      ws.OrderBookType,
 				Pair:      *pair,
 				OrderBook: *ob,
@@ -122,7 +122,7 @@ func (p *KucoinHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequ
 		subscriptionMessage := SubscriptionMessageRequest{
 			ID:             1,
 			Type:           "subscribe",
-			Topic:          fmt.Sprintf("/spotMarket/level2Depth5:%s", topic),
+			Topic:          fmt.Sprintf("/spotMarket/level2Depth50:%s", topic),
 			PrivateChannel: false,
 			Response:       true,
 		}

@@ -2,6 +2,8 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -17,9 +19,9 @@ const (
 )
 
 type FTXHandler struct {
-	opts genericws.HandlerOptions
-	Asks map[string]market.OrderBookRow
-	Bids map[string]market.OrderBookRow
+	opts          genericws.HandlerOptions
+	orderBookAsks map[string]map[float64]float64
+	orderBookBids map[string]map[float64]float64
 }
 
 func NewHandler() *FTXHandler {
@@ -28,8 +30,8 @@ func NewHandler() *FTXHandler {
 
 func (h *FTXHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
-	h.Asks = make(map[string]market.OrderBookRow)
-	h.Bids = make(map[string]market.OrderBookRow)
+	h.orderBookAsks = make(map[string]map[float64]float64)
+	h.orderBookBids = make(map[string]map[float64]float64)
 	return nil
 }
 
@@ -159,8 +161,9 @@ func (h *FTXHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "FTXHandler.toOrderBook"
 
 	stream := FTXOrderBookStream{}
+
 	if strings.Contains(string(in), `"type": "partial"`) {
-		return ws.ListenChan{}, nil
+		fmt.Println(string(in))
 	}
 
 	err := json.Unmarshal(in, &stream)
@@ -168,79 +171,100 @@ func (h *FTXHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 	}
 
-	h.ftxAskBidsToOrderBookRow(stream)
+	orderBook := h.ftxAskBidsToOrderBookRow(stream)
 
-	ask, ok := h.Asks[stream.Market]
-	if !ok {
-		return ws.ListenChan{}, nil
-	}
-
-	bid, ok := h.Bids[stream.Market]
-	if !ok {
-		return ws.ListenChan{}, nil
-	}
-
-	if ask.Price == 0 || bid.Price == 0 {
-		return ws.ListenChan{}, nil
-	}
+	//asks, ok := h.Asks[stream.Market]
+	//if !ok {
+	//	return ws.ListenChan{}, nil
+	//}
+	//
+	//bids, ok := h.Bids[stream.Market]
+	//if !ok {
+	//	return ws.ListenChan{}, nil
+	//}
+	//
+	//if asks[0].Price == 0 || bids[0].Price == 0 {
+	//	return ws.ListenChan{}, nil
+	//}
 
 	return ws.ListenChan{
-		IsValid: true,
-		Pair:    ftxPairToMarketPair(stream.Market),
-		OrderBook: market.OrderBook{
-			Time: time.Now().Unix(),
-			Asks: []market.OrderBookRow{ask},
-			Bids: []market.OrderBookRow{bid},
-		},
+		IsValid:   true,
+		Pair:      ftxPairToMarketPair(stream.Market),
+		OrderBook: orderBook,
 	}, nil
 }
 
-func (h *FTXHandler) ftxAskBidsToOrderBookRow(stream FTXOrderBookStream) {
+func (h *FTXHandler) ftxAskBidsToOrderBookRow(stream FTXOrderBookStream) market.OrderBook {
 
 	asks := stream.Data.Asks
 	bids := stream.Data.Bids
 
-	if len(asks) > 0 {
-		for _, ask := range asks {
-			volume := ask[1]
-			if volume > 0 {
-				ask := market.OrderBookRow{
-					Price:       ask[0],
-					Volume:      ask[1],
-					AccumVolume: ask[1],
-				}
-				h.Asks[stream.Market] = ask
-			}
+	if _, ok := h.orderBookAsks[stream.Market]; !ok {
+		h.orderBookAsks[stream.Market] = make(map[float64]float64)
+	}
+
+	if _, ok := h.orderBookBids[stream.Market]; !ok {
+		h.orderBookBids[stream.Market] = make(map[float64]float64)
+	}
+
+	for _, v := range asks {
+		volume := v[1]
+		if volume > 0 {
+			h.orderBookAsks[stream.Market][v[0]] = v[1]
 		}
 	}
 
-	if len(bids) > 0 {
-		for _, bid := range bids {
-			volume := bid[1]
-			if volume > 0 {
-				bid := market.OrderBookRow{
-					Price:       bid[0],
-					Volume:      bid[1],
-					AccumVolume: bid[1],
-				}
-				h.Bids[stream.Market] = bid
-			}
-		}
+	for _, v := range bids {
+		volume := v[1]
+		h.orderBookBids[stream.Market][v[0]] = volume
 	}
+
+	accumVol := 0.0
+
+	parsedOrderBook := market.OrderBook{
+		Time: time.Now().Unix(),
+	}
+
+	for k, v := range h.orderBookAsks[stream.Market] {
+		accumVol += v
+		parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
+			Price:       k,
+			Volume:      v,
+			AccumVolume: accumVol,
+		})
+	}
+	sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
+		return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
+	})
+
+	accumVol = 0
+	for k, v := range h.orderBookBids[stream.Market] {
+		accumVol += v
+		parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
+			Price:       k,
+			Volume:      v,
+			AccumVolume: accumVol,
+		})
+	}
+	sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
+		return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
+	})
+
+	return parsedOrderBook
 }
 
 func getRequest(pair market.Pair, channel string) ([]byte, error) {
 	const op = "getRequest"
 
-	market := pair.Symbol("/")
+	marketSymbol := pair.Symbol("/")
 	if pair.Quote.Symbol == "PERP" {
-		market = pair.Symbol("-")
+		marketSymbol = pair.Symbol("-")
 	}
 
 	subscriptionRequest := FTXSubscribeRequest{
 		Operation: "subscribe",
-		Channel:   string(channel),
-		Market:    market,
+		Channel:   channel,
+		Market:    marketSymbol,
 	}
 
 	request, err := json.Marshal(subscriptionRequest)

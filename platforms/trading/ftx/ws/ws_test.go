@@ -12,7 +12,7 @@ import (
 
 func TestWs(t *testing.T) {
 
-	opts := []genericws.Option{}
+	var opts []genericws.Option
 
 	btc := market.Pair{
 		Base:  market.Asset{Symbol: "COMP"},
@@ -30,7 +30,7 @@ func TestWs(t *testing.T) {
 	handler := NewHandler()
 
 	opts = append(opts, genericws.WithName("FTX"))
-	ws, err := genericws.NewClient(&handler, opts...)
+	ws, err := genericws.NewClient(handler, opts...)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ws)
@@ -48,12 +48,12 @@ func TestWs(t *testing.T) {
 			assert.True(t, ok)
 
 			if msg.OrderBook.Time > 0 {
-				fmt.Println("ob", msg.Pair.Symbol("/"), msg.OrderBook)
+				fmt.Println("ob", msg.Pair.Symbol("/"), msg.OrderBook.String())
 			}
 
-			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
-				fmt.Println("tick", msg.Pair.Symbol("/"), msg.Tickers[0])
-			}
+			//if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
+			//	fmt.Println("tick", msg.Pair.Symbol("/"), msg.Tickers[0])
+			//}
 		}
 	}
 }

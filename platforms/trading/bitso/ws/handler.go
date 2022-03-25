@@ -110,8 +110,10 @@ func (h *bitsoHandler) toOrderBook(in []byte) (market.OrderBook, error) {
 	}
 
 	var time int64
+	accumVol := 0.0
 	for _, bid := range order.Payload.Bids {
-		orderBook.Bids = append(orderBook.Bids, toOrderBookRow(bid))
+		accumVol += bid.Amount
+		orderBook.Bids = append(orderBook.Bids, toOrderBookRow(bid, accumVol))
 		if time < bid.UnixTime {
 			time = bid.UnixTime
 		}
@@ -121,14 +123,13 @@ func (h *bitsoHandler) toOrderBook(in []byte) (market.OrderBook, error) {
 		sort.Slice(orderBook.Bids, func(i, j int) bool {
 			return orderBook.Bids[i].Price > orderBook.Bids[j].Price
 		})
-		orderBook.Bids[0].AccumVolume = orderBook.Bids[0].Volume
-		for i := 1; i < len(orderBook.Bids); i++ {
-			orderBook.Bids[i].AccumVolume = orderBook.Bids[i-1].Volume + orderBook.Bids[i].Volume
-		}
 	}
 
+	accumVol = 0
+
 	for _, ask := range order.Payload.Asks {
-		orderBook.Asks = append(orderBook.Asks, toOrderBookRow(ask))
+		accumVol += ask.Amount
+		orderBook.Asks = append(orderBook.Asks, toOrderBookRow(ask, accumVol))
 		if time < ask.UnixTime {
 			time = ask.UnixTime
 		}
@@ -138,10 +139,6 @@ func (h *bitsoHandler) toOrderBook(in []byte) (market.OrderBook, error) {
 		sort.Slice(orderBook.Asks, func(i, j int) bool {
 			return orderBook.Asks[i].Price < orderBook.Asks[j].Price
 		})
-		orderBook.Asks[0].AccumVolume = orderBook.Asks[0].Volume
-		for i := 1; i < len(orderBook.Asks); i++ {
-			orderBook.Asks[i].AccumVolume = orderBook.Asks[i-1].Volume + orderBook.Asks[i].Volume
-		}
 	}
 
 	orderBook.Time = time
@@ -201,11 +198,11 @@ func (h *bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	return nil
 }
 
-func toOrderBookRow(ba BidAsk) market.OrderBookRow {
+func toOrderBookRow(ba BidAsk, previousAccum float64) market.OrderBookRow {
 	orderRow := market.OrderBookRow{
 		Price:       ba.Rate,
 		Volume:      ba.Amount,
-		AccumVolume: 0,
+		AccumVolume: previousAccum,
 	}
 	return orderRow
 }

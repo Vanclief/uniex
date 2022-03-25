@@ -16,9 +16,14 @@ type StreamTickerEvent struct {
 	Data   BinanceTickerData `json:"data"`
 }
 
-type StreamOrderBookEvent struct {
-	Stream string               `json:"stream"`
-	Data   BinanceOrderBookData `json:"data"`
+type StreamPartialOrderBookEvent struct {
+	Stream string                      `json:"stream"`
+	Data   BinancePartialOrderBookData `json:"data"`
+}
+
+type StreamUpdateOrderBookEvent struct {
+	Stream string                 `json:"stream"`
+	Data   BinanceUpdateOrderBook `json:"data"`
 }
 
 type BinanceTickerData struct {
@@ -47,11 +52,21 @@ type BinanceTickerData struct {
 	TotalNumberOfTrades  int    `json:"n"`
 }
 
-type BinanceOrderBookData struct {
+type BinanceUpdateOrderBook struct {
 	OrderBookUpdateID int    `json:"u"`
 	Symbol            string `json:"s"`
 	BestBidPrice      string `json:"b"`
 	BestBidQuantity   string `json:"B"`
 	BestAskPrice      string `json:"a"`
 	BestAskQuantity   string `json:"A"`
+}
+
+type BinancePartialOrderBookData struct {
+	EventType     string     `json:"e"`
+	EventTime     int64      `json:"E"`
+	Symbol        string     `json:"s"`
+	FirstUpdateID int64      `json:"U"`
+	FinalUpdateUD int64      `json:"u"`
+	Bids          [][]string `json:"b"`
+	Asks          [][]string `json:"a"`
 }
