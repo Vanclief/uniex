@@ -2,7 +2,7 @@ package ws
 
 import (
 	"encoding/json"
-	"sort"
+	"github.com/vanclief/uniex/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -78,29 +78,6 @@ func pairStringToMarketPair(in string) market.Pair {
 		},
 	}
 }
-
-//func processTicker(in string) (*KrakenTickerContent, market.Pair, error) {
-//	const op = "KrakenHandler.ToTickers.processTicker"
-//	arrays := getTickerArrays(in)
-//	if len(arrays) != 9 {
-//		return nil, market.Pair{}, ez.New(op, ez.EINVALID, "invalid ticker arrays length", nil)
-//	}
-//
-//	pair := strings.Split(in, `"ticker",`)[1]
-//	marketPair := pairStringToMarketPair(strings.ReplaceAll(pair[:len(pair)-1], `"`, ""))
-//
-//	return &KrakenTickerContent{
-//		AskPrice:       arrays[0][0],
-//		BidPrice:       arrays[0][1],
-//		ClosePrice:     arrays[0][2],
-//		Volume:         arrays[0][3],
-//		VWAP:           arrays[0][4],
-//		NumberOfTrades: arrays[0][5],
-//		LowPrice:       arrays[0][6],
-//		HighPrice:      arrays[0][7],
-//		OpenPrice:      arrays[0][8],
-//	}, marketPair, nil
-//}
 
 func processTrade(in string) (*TradeInfo, error) {
 	const op = "KrakenHandler.ToTradeInfo"
@@ -191,42 +168,22 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	}
 
 	for _, v := range asks {
-		h.asks[marketPair.String()][v[0]] = v[1]
+		if v[1] == 0 {
+			delete(h.asks[marketPair.String()], v[0])
+		} else {
+			h.asks[marketPair.String()][v[0]] = v[1]
+		}
 	}
 
 	for _, v := range bids {
-		h.bids[marketPair.String()][v[0]] = v[1]
+		if v[1] == 0 {
+			delete(h.bids[marketPair.String()], v[0])
+		} else {
+			h.bids[marketPair.String()][v[0]] = v[1]
+		}
 	}
 
-	accumVol := 0.0
-
-	parsedOrderBook := market.OrderBook{
-		Time: time.Now().Unix(),
-	}
-	for k, v := range h.asks[marketPair.String()] {
-		accumVol += v
-		parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
-			Price:       k,
-			Volume:      v,
-			AccumVolume: accumVol,
-		})
-	}
-	sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
-		return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
-	})
-
-	accumVol = 0
-	for k, v := range h.bids[marketPair.String()] {
-		accumVol += v
-		parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
-			Price:       k,
-			Volume:      v,
-			AccumVolume: accumVol,
-		})
-	}
-	sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
-		return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
-	})
+	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[marketPair.String()], h.bids[marketPair.String()])
 
 	return ws.ListenChan{
 		Pair:      marketPair,

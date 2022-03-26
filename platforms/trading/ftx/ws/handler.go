@@ -173,20 +173,6 @@ func (h *FTXHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 
 	orderBook := h.ftxAskBidsToOrderBookRow(stream)
 
-	//asks, ok := h.Asks[stream.Market]
-	//if !ok {
-	//	return ws.ListenChan{}, nil
-	//}
-	//
-	//bids, ok := h.Bids[stream.Market]
-	//if !ok {
-	//	return ws.ListenChan{}, nil
-	//}
-	//
-	//if asks[0].Price == 0 || bids[0].Price == 0 {
-	//	return ws.ListenChan{}, nil
-	//}
-
 	return ws.ListenChan{
 		IsValid:   true,
 		Pair:      ftxPairToMarketPair(stream.Market),

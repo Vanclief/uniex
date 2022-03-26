@@ -12,7 +12,7 @@ import (
 
 func TestWs(t *testing.T) {
 
-	opts := []genericws.Option{}
+	var opts []genericws.Option
 
 	btc := market.Pair{
 		Base:  market.Asset{Symbol: "BTC"},

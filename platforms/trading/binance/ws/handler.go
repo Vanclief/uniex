@@ -7,10 +7,9 @@ import (
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-	"sort"
+	"github.com/vanclief/uniex/utils"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type BinanceHandler struct {
@@ -71,8 +70,6 @@ func (h *BinanceHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "BinanceHandler.ToOrderBook"
 
-	accumVol := 0.0
-
 	if strings.Contains(string(in), `@depth20@100ms`) {
 		payload := StreamPartialOrderBookEvent{}
 		err := json.Unmarshal(in, &payload)
@@ -90,40 +87,23 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		for _, ask := range payload.Data.Asks {
 			priceFloat, _ := strconv.ParseFloat(ask[0], 64)
 			volFloat, _ := strconv.ParseFloat(ask[1], 64)
-			h.orderBookAsks[payload.Data.Symbol][priceFloat] = volFloat
+			if volFloat == 0 {
+				delete(h.orderBookAsks[payload.Data.Symbol], priceFloat)
+			} else {
+				h.orderBookAsks[payload.Data.Symbol][priceFloat] = volFloat
+			}
 		}
 		for _, bid := range payload.Data.Bids {
 			priceFloat, _ := strconv.ParseFloat(bid[0], 64)
 			volFloat, _ := strconv.ParseFloat(bid[1], 64)
-			h.orderBookBids[payload.Data.Symbol][priceFloat] = volFloat
+			if volFloat == 0 {
+				delete(h.orderBookBids[payload.Data.Symbol], priceFloat)
+			} else {
+				h.orderBookBids[payload.Data.Symbol][priceFloat] = volFloat
+			}
 		}
-		parsedOrderBook := market.OrderBook{
-			Time: time.Now().Unix(),
-		}
-		for k, v := range h.orderBookAsks[payload.Data.Symbol] {
-			accumVol += v
-			parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
-				Price:       k,
-				Volume:      v,
-				AccumVolume: accumVol,
-			})
-		}
-		sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
-			return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
-		})
 
-		accumVol = 0
-		for k, v := range h.orderBookBids[payload.Data.Symbol] {
-			accumVol += v
-			parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
-				Price:       k,
-				Volume:      v,
-				AccumVolume: accumVol,
-			})
-		}
-		sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
-			return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
-		})
+		parsedOrderBook := utils.GenerateOrderBookFromMap(h.orderBookAsks[payload.Data.Symbol], h.orderBookBids[payload.Data.Symbol])
 
 		pair, _ := pairStringToPairStruct(payload.Data.Symbol)
 
@@ -156,33 +136,7 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 
 		h.orderBookAsks[payload.Data.Symbol][bestBidPrice] = bestBidQty
 
-		parsedOrderBook := market.OrderBook{
-			Time: time.Now().Unix(),
-		}
-		for k, v := range h.orderBookAsks[payload.Data.Symbol] {
-			accumVol += v
-			parsedOrderBook.Asks = append(parsedOrderBook.Asks, market.OrderBookRow{
-				Price:       k,
-				Volume:      v,
-				AccumVolume: accumVol,
-			})
-		}
-		sort.Slice(parsedOrderBook.Asks, func(i, j int) bool {
-			return parsedOrderBook.Asks[i].Price < parsedOrderBook.Asks[j].Price
-		})
-
-		accumVol = 0
-		for k, v := range h.orderBookBids[payload.Data.Symbol] {
-			accumVol += v
-			parsedOrderBook.Bids = append(parsedOrderBook.Bids, market.OrderBookRow{
-				Price:       k,
-				Volume:      v,
-				AccumVolume: accumVol,
-			})
-		}
-		sort.Slice(parsedOrderBook.Bids, func(i, j int) bool {
-			return parsedOrderBook.Bids[i].Price > parsedOrderBook.Bids[j].Price
-		})
+		parsedOrderBook := utils.GenerateOrderBookFromMap(h.orderBookAsks[payload.Data.Symbol], h.orderBookBids[payload.Data.Symbol])
 
 		pair, _ := pairStringToPairStruct(payload.Data.Symbol)
 
