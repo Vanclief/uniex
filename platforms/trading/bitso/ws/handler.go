@@ -183,15 +183,9 @@ func (h *bitsoHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionReque
 
 func (h *bitsoHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "bitsoHandler.VerifySubscriptionResponse"
-	response := &SubscriptionResponse{}
 
-	err := json.Unmarshal(in, &response)
-	if err != nil {
-		return ez.Wrap(op, err)
-	}
-
-	if response.Response != "ok" {
-		msg := fmt.Sprintf("Error on verify subscription response\ninput: %s\nParsed: %s", string(in), response.Response)
+	if strings.Contains(string(in), `"action":"subscribe"`) && !strings.Contains(string(in), `"response":"ok"`) {
+		msg := fmt.Sprintf("Error on verify subscription response\ninput: %s\n", string(in))
 		return ez.New(op, ez.EINTERNAL, msg, nil)
 	}
 
