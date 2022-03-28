@@ -196,13 +196,19 @@ func (h *FTXHandler) ftxAskBidsToOrderBookRow(stream FTXOrderBookStream) market.
 	for _, v := range asks {
 		volume := v[1]
 		if volume > 0 {
-			h.orderBookAsks[stream.Market][v[0]] = v[1]
+			h.orderBookAsks[stream.Market][v[0]] = volume
+		} else {
+			delete(h.orderBookAsks[stream.Market], v[0])
 		}
 	}
 
 	for _, v := range bids {
 		volume := v[1]
-		h.orderBookBids[stream.Market][v[0]] = volume
+		if volume > 0 {
+			h.orderBookBids[stream.Market][v[0]] = volume
+		} else {
+			delete(h.orderBookBids[stream.Market], v[0])
+		}
 	}
 
 	accumVol := 0.0

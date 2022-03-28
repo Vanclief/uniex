@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/vanclief/uniex/utils"
 	"strconv"
 	"strings"
@@ -144,6 +145,8 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, nil
 	}
 
+	fmt.Println("input:", string(in))
+
 	arrays := getTickerArrays(string(in))
 	if len(arrays) == 0 {
 		return ws.ListenChan{}, nil
@@ -165,6 +168,7 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	var bids [][]float64
 	if len(arrays) == 2 {
 		bids = arrays[1]
+		fmt.Println("array first items", asks[0], bids[0])
 	}
 
 	for _, v := range asks {

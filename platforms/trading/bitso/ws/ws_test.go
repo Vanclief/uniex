@@ -49,6 +49,7 @@ func TestWs(t *testing.T) {
 			assert.NotNil(t, msg)
 
 			if msg.OrderBook.Time > 0 {
+				assert.True(t, msg.OrderBook.Asks[0].Price > msg.OrderBook.Bids[0].Price)
 				fmt.Println("ob", msg.OrderBook.String())
 			}
 

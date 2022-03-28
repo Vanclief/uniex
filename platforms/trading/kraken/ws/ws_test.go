@@ -48,7 +48,10 @@ func TestWs(t *testing.T) {
 			assert.True(t, ok)
 
 			if msg.OrderBook.Time > 0 {
-				fmt.Println("ob", msg.OrderBook)
+				if len(msg.OrderBook.Bids) > 0 && len(msg.OrderBook.Asks) > 0 {
+					assert.True(t, msg.OrderBook.Asks[0].Price > msg.OrderBook.Bids[0].Price)
+				}
+				fmt.Println("ob", msg.OrderBook.Asks[0].Price, msg.OrderBook.Bids[0].Price)
 			}
 
 			//if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
