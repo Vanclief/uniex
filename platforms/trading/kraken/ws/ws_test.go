@@ -3,11 +3,10 @@ package ws
 import (
 	"context"
 	"fmt"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+	"testing"
 )
 
 func TestWs(t *testing.T) {
@@ -51,7 +50,7 @@ func TestWs(t *testing.T) {
 				if len(msg.OrderBook.Bids) > 0 && len(msg.OrderBook.Asks) > 0 {
 					assert.True(t, msg.OrderBook.Asks[0].Price > msg.OrderBook.Bids[0].Price)
 				}
-				fmt.Println("ob", msg.OrderBook.Asks[0].Price, msg.OrderBook.Bids[0].Price)
+				fmt.Println("ob", msg.OrderBook.String())
 			}
 
 			//if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {

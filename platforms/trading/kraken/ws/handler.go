@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/vanclief/uniex/utils"
 	"strconv"
 	"strings"
@@ -42,30 +41,32 @@ func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	return nil
 }
 
-func getTickerArrays(in string) [][][]float64 {
-	startIndex := strings.Index(in, `{`)
-	endIndex := strings.LastIndex(in, `}`)
-	tickerContent := in[startIndex : endIndex+1]
-
-	splitByPoints := strings.Split(tickerContent, ":")
-
-	var arrays [][][]float64
-	for _, v := range splitByPoints {
-		closingBracketIndex := strings.Index(v, "]]")
-		if closingBracketIndex == -1 {
+func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) {
+	var msg KrakenOrderBookPayload
+	if err := json.Unmarshal(input, &msg); err != nil {
+		return nil, market.Pair{}
+	}
+	var temp map[string]interface{}
+	err := json.Unmarshal(msg.Data, &temp)
+	if err != nil {
+		return nil, market.Pair{}
+	}
+	asksBids := make(map[string][][]float64)
+	for k, v := range temp {
+		str, _ := json.Marshal(v)
+		if !strings.Contains(string(str), "[[") {
 			continue
 		}
-		array := v[:closingBracketIndex+2]
-		array = strings.ReplaceAll(array, `"`, "")
-		var arrayFloat [][]float64
-		err := json.Unmarshal([]byte(array), &arrayFloat)
+		str2 := strings.ReplaceAll(string(str), `,"r"`, "")
+		str2 = strings.ReplaceAll(str2, `"`, "")
+		var mapItem [][]float64
+		err = json.Unmarshal([]byte(str2), &mapItem)
 		if err != nil {
-			return nil
+			return nil, market.Pair{}
 		}
-		arrays = append(arrays, arrayFloat)
+		asksBids[k] = mapItem
 	}
-
-	return arrays
+	return asksBids, pairStringToMarketPair(msg.Pair)
 }
 
 func pairStringToMarketPair(in string) market.Pair {
@@ -145,52 +146,59 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, nil
 	}
 
-	fmt.Println("input:", string(in))
+	asksBids, pair := generateMapFromWsInput(in)
 
-	arrays := getTickerArrays(string(in))
-	if len(arrays) == 0 {
-		return ws.ListenChan{}, nil
+	if asksBids == nil {
+		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid order book", nil)
 	}
 
-	temp := strings.Split(string(in), `,`)
-	pairString := temp[len(temp)-1][:len(temp[len(temp)-1])-1]
-	marketPair := pairStringToMarketPair(strings.ReplaceAll(pairString, `"`, ""))
-
-	if _, ok := h.asks[marketPair.String()]; !ok {
-		h.asks[marketPair.String()] = make(map[float64]float64)
+	if _, ok := h.asks[pair.String()]; !ok {
+		h.asks[pair.String()] = make(map[float64]float64)
 	}
 
-	if _, ok := h.bids[marketPair.String()]; !ok {
-		h.bids[marketPair.String()] = make(map[float64]float64)
+	if _, ok := h.bids[pair.String()]; !ok {
+		h.bids[pair.String()] = make(map[float64]float64)
 	}
 
-	asks := arrays[0]
-	var bids [][]float64
-	if len(arrays) == 2 {
-		bids = arrays[1]
-		fmt.Println("array first items", asks[0], bids[0])
-	}
+	for k, v := range asksBids {
+		if len(v) == 0 {
+			continue
+		}
+		switch k {
+		case "as":
+		case "a":
+			for _, ask := range v {
+				if len(ask) == 0 {
+					continue
+				}
+				volume := ask[1]
+				if volume == 0 {
+					delete(h.asks[pair.String()], ask[0])
+				} else {
 
-	for _, v := range asks {
-		if v[1] == 0 {
-			delete(h.asks[marketPair.String()], v[0])
-		} else {
-			h.asks[marketPair.String()][v[0]] = v[1]
+					h.asks[pair.String()][ask[0]] = ask[1]
+				}
+			}
+		case "bs":
+		case "b":
+			for _, bid := range v {
+				if len(bid) == 0 {
+					continue
+				}
+				volume := bid[1]
+				if volume == 0 {
+					delete(h.bids[pair.String()], bid[0])
+				} else {
+					h.bids[pair.String()][bid[0]] = bid[1]
+				}
+			}
 		}
 	}
 
-	for _, v := range bids {
-		if v[1] == 0 {
-			delete(h.bids[marketPair.String()], v[0])
-		} else {
-			h.bids[marketPair.String()][v[0]] = v[1]
-		}
-	}
-
-	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[marketPair.String()], h.bids[marketPair.String()])
+	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[pair.String()], h.bids[pair.String()])
 
 	return ws.ListenChan{
-		Pair:      marketPair,
+		Pair:      pair,
 		OrderBook: parsedOrderBook,
 		IsValid:   true,
 	}, nil
