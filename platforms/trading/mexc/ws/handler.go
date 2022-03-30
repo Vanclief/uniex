@@ -2,19 +2,18 @@ package ws
 
 import (
 	"encoding/json"
-	"strings"
-	"time"
-
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+	"github.com/vanclief/uniex/utils"
+	"strings"
 )
 
 type MEXCHandler struct {
 	opts genericws.HandlerOptions
-	Asks map[string]market.OrderBookRow
-	Bids map[string]market.OrderBookRow
+	Asks map[string]map[float64]float64
+	Bids map[string]map[float64]float64
 }
 
 func NewHandler() *MEXCHandler {
@@ -23,8 +22,8 @@ func NewHandler() *MEXCHandler {
 
 func (h *MEXCHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
-	h.Asks = make(map[string]market.OrderBookRow)
-	h.Bids = make(map[string]market.OrderBookRow)
+	h.Asks = make(map[string]map[float64]float64)
+	h.Bids = make(map[string]map[float64]float64)
 	return nil
 }
 
@@ -123,6 +122,8 @@ func (h *MEXCHandler) toTickers(in []byte) (ws.ListenChan, error) {
 
 func (h *MEXCHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "MEXCHandler.toOrderBook"
+
+	//fmt.Println(string(in))
 	payload := MEXCOrderBookPayload{}
 
 	err := json.Unmarshal(in, &payload)
@@ -137,52 +138,43 @@ func (h *MEXCHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 
 	h.updateOrderBook(payload)
 
-	ask, ok := h.Asks[payload.Symbol]
-	if !ok {
-		return ws.ListenChan{}, nil
-	}
-
-	bid, ok := h.Bids[payload.Symbol]
-	if !ok {
-		return ws.ListenChan{}, nil
-	}
-
-	if ask.Price == 0 || bid.Price == 0 {
-		return ws.ListenChan{}, nil
-	}
+	parsedOrderBook := utils.GenerateOrderBookFromMap(h.Asks[payload.Symbol], h.Bids[payload.Symbol])
 
 	return ws.ListenChan{
-		IsValid: true,
-		Pair:    pair,
-		OrderBook: market.OrderBook{
-			Time: time.Now().Unix(),
-			Asks: []market.OrderBookRow{ask},
-			Bids: []market.OrderBookRow{bid},
-		},
+		IsValid:   true,
+		Pair:      pair,
+		OrderBook: parsedOrderBook,
 	}, nil
 }
 
 func (h *MEXCHandler) updateOrderBook(payload MEXCOrderBookPayload) {
+	//TODO: Tip: [411.8, 10, 1] 411.8 is price，10 is the order numbers of the contract ,1 is the order quantity
+
+	if _, ok := h.Asks[payload.Symbol]; !ok {
+		h.Asks[payload.Symbol] = make(map[float64]float64)
+	}
+
+	if _, ok := h.Bids[payload.Symbol]; !ok {
+		h.Bids[payload.Symbol] = make(map[float64]float64)
+	}
 
 	for _, v := range payload.Data.Asks {
-		if v[1] > 0 {
-			ask := market.OrderBookRow{
-				Price:       v[0],
-				Volume:      v[1],
-				AccumVolume: v[1],
-			}
-			h.Asks[payload.Symbol] = ask
+		price := v[0]
+		volume := v[2]
+		if volume > 0 {
+			h.Asks[payload.Symbol][price] = volume
+		} else {
+			delete(h.Asks[payload.Symbol], price)
 		}
 	}
 
 	for _, v := range payload.Data.Bids {
-		if v[1] > 0 {
-			bid := market.OrderBookRow{
-				Price:       v[0],
-				Volume:      v[1],
-				AccumVolume: v[1],
-			}
-			h.Bids[payload.Symbol] = bid
+		price := v[0]
+		volume := v[2]
+		if volume > 0 {
+			h.Bids[payload.Symbol][price] = volume
+		} else {
+			delete(h.Bids[payload.Symbol], price)
 		}
 	}
 }

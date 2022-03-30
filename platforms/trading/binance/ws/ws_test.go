@@ -19,13 +19,13 @@ func TestWs(t *testing.T) {
 		Quote: market.Asset{Symbol: "USDT"},
 	}
 
-	eth := market.Pair{
-		Base:  market.Asset{Symbol: "ETH"},
-		Quote: market.Asset{Symbol: "USDT"},
-	}
+	//eth := market.Pair{
+	//	Base:  market.Asset{Symbol: "ETH"},
+	//	Quote: market.Asset{Symbol: "USDT"},
+	//}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btc))
-	opts = append(opts, genericws.WithSubscriptionTo(eth))
+	//opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -50,6 +50,7 @@ func TestWs(t *testing.T) {
 			if msg.OrderBook.Time > 0 {
 				if len(msg.OrderBook.Bids) > 0 && len(msg.OrderBook.Asks) > 0 {
 					assert.True(t, msg.OrderBook.Asks[0].Price > msg.OrderBook.Bids[0].Price)
+					fmt.Println(msg.OrderBook.Asks[0].Price, msg.OrderBook.Bids[0].Price)
 				}
 				fmt.Println("ob", msg.OrderBook.String())
 			}

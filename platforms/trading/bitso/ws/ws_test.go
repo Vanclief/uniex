@@ -53,9 +53,9 @@ func TestWs(t *testing.T) {
 				fmt.Println("ob", msg.OrderBook.String())
 			}
 
-			//if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
-			//	fmt.Println("tick", msg.Tickers[0])
-			//}
+			if len(msg.Tickers) > 0 && msg.Tickers[0].Time > 0 {
+				fmt.Println("tick", msg.Tickers[0])
+			}
 		}
 	}
 }

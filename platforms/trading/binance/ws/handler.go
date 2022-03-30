@@ -128,13 +128,20 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 
 		bestAskPrice, _ := strconv.ParseFloat(payload.Data.BestAskPrice, 64)
 		bestAskQty, _ := strconv.ParseFloat(payload.Data.BestAskQuantity, 64)
-
-		h.orderBookAsks[payload.Data.Symbol][bestAskPrice] = bestAskQty
+		if bestAskQty == 0 {
+			delete(h.orderBookAsks[payload.Data.Symbol], bestAskPrice)
+		} else {
+			h.orderBookAsks[payload.Data.Symbol][bestAskPrice] = bestAskQty
+		}
 
 		bestBidPrice, _ := strconv.ParseFloat(payload.Data.BestBidPrice, 64)
 		bestBidQty, _ := strconv.ParseFloat(payload.Data.BestBidQuantity, 64)
 
-		h.orderBookBids[payload.Data.Symbol][bestBidPrice] = bestBidQty
+		if bestBidQty == 0 {
+			delete(h.orderBookBids[payload.Data.Symbol], bestBidPrice)
+		} else {
+			h.orderBookBids[payload.Data.Symbol][bestBidPrice] = bestBidQty
+		}
 
 		parsedOrderBook := utils.GenerateOrderBookFromMap(h.orderBookAsks[payload.Data.Symbol], h.orderBookBids[payload.Data.Symbol])
 
