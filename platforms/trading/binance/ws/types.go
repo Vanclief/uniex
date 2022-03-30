@@ -53,7 +53,7 @@ type BinanceTickerData struct {
 }
 
 type BinanceUpdateOrderBook struct {
-	OrderBookUpdateID int    `json:"u"`
+	OrderBookUpdateID int64  `json:"u"`
 	Symbol            string `json:"s"`
 	BestBidPrice      string `json:"b"`
 	BestBidQuantity   string `json:"B"`
@@ -66,7 +66,7 @@ type BinancePartialOrderBookData struct {
 	EventTime     int64      `json:"E"`
 	Symbol        string     `json:"s"`
 	FirstUpdateID int64      `json:"U"`
-	FinalUpdateUD int64      `json:"u"`
+	FinalUpdateID int64      `json:"u"`
 	Bids          [][]string `json:"b"`
 	Asks          [][]string `json:"a"`
 }

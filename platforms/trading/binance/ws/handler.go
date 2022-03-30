@@ -14,12 +14,14 @@ import (
 
 type BinanceHandler struct {
 	opts          genericws.HandlerOptions
+	lastUpdateId  int64
 	orderBookAsks map[string]map[float64]float64
 	orderBookBids map[string]map[float64]float64
 }
 
 func (h *BinanceHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
+	h.lastUpdateId = 0
 	h.orderBookAsks = make(map[string]map[float64]float64)
 	h.orderBookBids = make(map[string]map[float64]float64)
 	return nil
@@ -77,6 +79,11 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 			return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 		}
 
+		if payload.Data.FinalUpdateID <= h.lastUpdateId {
+			return ws.ListenChan{}, nil
+		}
+		h.lastUpdateId = payload.Data.FinalUpdateID
+
 		if _, ok := h.orderBookAsks[payload.Data.Symbol]; !ok {
 			h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
 		}
@@ -118,6 +125,11 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		if err != nil {
 			return ws.ListenChan{}, ez.New(op, ez.EINVALID, "Failed to unmarshal payload", err)
 		}
+
+		if payload.Data.OrderBookUpdateID <= h.lastUpdateId {
+			return ws.ListenChan{}, nil
+		}
+		h.lastUpdateId = payload.Data.OrderBookUpdateID
 
 		if _, ok := h.orderBookAsks[payload.Data.Symbol]; !ok {
 			h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
