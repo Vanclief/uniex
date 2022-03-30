@@ -84,12 +84,8 @@ func (h *BinanceHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		}
 		h.lastUpdateId = payload.Data.FinalUpdateID
 
-		if _, ok := h.orderBookAsks[payload.Data.Symbol]; !ok {
-			h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
-		}
-		if _, ok := h.orderBookBids[payload.Data.Symbol]; !ok {
-			h.orderBookBids[payload.Data.Symbol] = make(map[float64]float64)
-		}
+		h.orderBookAsks[payload.Data.Symbol] = make(map[float64]float64)
+		h.orderBookBids[payload.Data.Symbol] = make(map[float64]float64)
 
 		for _, ask := range payload.Data.Asks {
 			priceFloat, _ := strconv.ParseFloat(ask[0], 64)
