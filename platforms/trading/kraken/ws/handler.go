@@ -2,7 +2,7 @@ package ws
 
 import (
 	"encoding/json"
-	"github.com/vanclief/uniex/utils"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +11,8 @@ import (
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+
+	"github.com/buger/jsonparser"
 )
 
 const (
@@ -20,8 +22,7 @@ const (
 
 type KrakenHandler struct {
 	opts genericws.HandlerOptions
-	asks map[string]map[float64]float64
-	bids map[string]map[float64]float64
+	ob   map[string]market.OrderBook
 }
 
 type TradeInfo struct {
@@ -30,43 +31,37 @@ type TradeInfo struct {
 	Pair       market.Pair
 }
 
+type orderBookRef struct {
+	updates []market.OrderBookUpdate
+}
+
 func NewHandler() *KrakenHandler {
 	return &KrakenHandler{}
 }
 
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
-	h.asks = make(map[string]map[float64]float64)
-	h.bids = make(map[string]map[float64]float64)
+	h.ob = make(map[string]market.OrderBook)
 	return nil
 }
 
-func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) {
-	var msg KrakenOrderBookPayload
-	if err := json.Unmarshal(input, &msg); err != nil {
-		return nil, market.Pair{}
+func parseUpdates(input []byte) ([]market.OrderBookUpdate, market.Pair) {
+	obRef := orderBookRef{
+		updates: []market.OrderBookUpdate{},
 	}
-	var temp map[string]interface{}
-	err := json.Unmarshal(msg.Data, &temp)
+
+	data, pair, err := getDataAndPair(input)
 	if err != nil {
 		return nil, market.Pair{}
 	}
-	asksBids := make(map[string][][]float64)
-	for k, v := range temp {
-		str, _ := json.Marshal(v)
-		if !strings.Contains(string(str), "[[") {
-			continue
-		}
-		str2 := strings.ReplaceAll(string(str), `,"r"`, "")
-		str2 = strings.ReplaceAll(str2, `"`, "")
-		var mapItem [][]float64
-		err = json.Unmarshal([]byte(str2), &mapItem)
-		if err != nil {
+
+	for _, key := range []string{"a", "as", "b", "bs"} {
+		if fErr := fillOrderBookUpdates(&obRef, data, key); fErr != nil {
 			return nil, market.Pair{}
 		}
-		asksBids[k] = mapItem
 	}
-	return asksBids, pairStringToMarketPair(msg.Pair)
+
+	return obRef.updates, pairStringToMarketPair(pair)
 }
 
 func pairStringToMarketPair(in string) market.Pair {
@@ -146,60 +141,27 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, nil
 	}
 
-	asksBids, pair := generateMapFromWsInput(in)
+	updates, pair := parseUpdates(in)
 
-	if asksBids == nil {
-		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid order book", nil)
+	if _, ok := h.ob[pair.String()]; !ok {
+		h.ob[pair.String()] = market.NewOrderBook(
+			[]market.OrderBookRow{},
+			[]market.OrderBookRow{},
+			25,
+		)
 	}
 
-	if _, ok := h.asks[pair.String()]; !ok {
-		h.asks[pair.String()] = make(map[float64]float64)
+	ob := h.ob[pair.String()]
+
+	for _, update := range updates {
+		ob.ApplyUpdate(update)
 	}
 
-	if _, ok := h.bids[pair.String()]; !ok {
-		h.bids[pair.String()] = make(map[float64]float64)
-	}
-
-	for k, v := range asksBids {
-		if len(v) == 0 {
-			continue
-		}
-		switch k {
-		case "as":
-		case "a":
-			for _, ask := range v {
-				if len(ask) == 0 {
-					continue
-				}
-				volume := ask[1]
-				if volume == 0 {
-					delete(h.asks[pair.String()], ask[0])
-				} else {
-
-					h.asks[pair.String()][ask[0]] = ask[1]
-				}
-			}
-		case "bs":
-		case "b":
-			for _, bid := range v {
-				if len(bid) == 0 {
-					continue
-				}
-				volume := bid[1]
-				if volume == 0 {
-					delete(h.bids[pair.String()], bid[0])
-				} else {
-					h.bids[pair.String()][bid[0]] = bid[1]
-				}
-			}
-		}
-	}
-
-	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[pair.String()], h.bids[pair.String()])
+	h.ob[pair.String()] = ob
 
 	return ws.ListenChan{
 		Pair:      pair,
-		OrderBook: parsedOrderBook,
+		OrderBook: h.ob[pair.String()],
 		IsValid:   true,
 	}, nil
 }
@@ -230,7 +192,8 @@ func (h KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionReque
 			Event: "subscribe",
 			Pair:  pairsArray,
 			Subscription: KrakenSubscription{
-				Name: ordersChannel,
+				Name:  ordersChannel,
+				Depth: 25,
 			},
 		}
 
@@ -274,4 +237,54 @@ func (h KrakenHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	return ez.New(op, ez.EINTERNAL, "Error subscribing to Kraken", nil)
+}
+
+func getDataAndPair(input []byte) ([]byte, string, error) {
+	var pair string
+	var data []byte
+	var err error
+
+	if data, _, _, err = jsonparser.Get(input, "[1]"); err != nil {
+		return data, pair, err
+	}
+
+	if pair, err = jsonparser.GetString(input, "[3]"); err != nil {
+		return data, pair, err
+	}
+
+	return data, pair, nil
+}
+
+func fillOrderBookUpdates(orderBookRef *orderBookRef, data []byte, key string) error {
+	var err error
+	side := "ask"
+	if key == "b" || key == "bs" {
+		side = "bid"
+	}
+
+	if _, pErr := jsonparser.ArrayEach(data, func(dataItem []byte, dataType jsonparser.ValueType, offset int, err error) {
+		priceStr, err := jsonparser.GetString(dataItem, "[0]")
+		if err != nil {
+			return
+		}
+		volumeStr, err := jsonparser.GetString(dataItem, "[1]")
+		if err != nil {
+			return
+		}
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			return
+		}
+		volume, err := strconv.ParseFloat(volumeStr, 64)
+		if err != nil {
+			return
+		}
+		update := market.OrderBookUpdate{Price: price, Volume: volume, Side: side}
+		orderBookRef.updates = append(orderBookRef.updates, update)
+	}, key); pErr != nil {
+		if !errors.Is(pErr, jsonparser.KeyPathNotFoundError) {
+			return pErr
+		}
+	}
+	return err
 }
