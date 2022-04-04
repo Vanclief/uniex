@@ -2,10 +2,12 @@ package ws
 
 import (
 	"encoding/json"
-	"github.com/vanclief/uniex/utils"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vanclief/uniex/utils"
 
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
@@ -43,29 +45,37 @@ func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 
 func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) {
 	var msg KrakenOrderBookPayload
+
 	if err := json.Unmarshal(input, &msg); err != nil {
 		return nil, market.Pair{}
 	}
+
 	var temp map[string]interface{}
 	err := json.Unmarshal(msg.Data, &temp)
 	if err != nil {
 		return nil, market.Pair{}
 	}
+
 	asksBids := make(map[string][][]float64)
 	for k, v := range temp {
+
 		str, _ := json.Marshal(v)
 		if !strings.Contains(string(str), "[[") {
 			continue
 		}
+
 		str2 := strings.ReplaceAll(string(str), `,"r"`, "")
 		str2 = strings.ReplaceAll(str2, `"`, "")
 		var mapItem [][]float64
+
 		err = json.Unmarshal([]byte(str2), &mapItem)
 		if err != nil {
 			return nil, market.Pair{}
 		}
+
 		asksBids[k] = mapItem
 	}
+
 	return asksBids, pairStringToMarketPair(msg.Pair)
 }
 
@@ -106,6 +116,8 @@ func processTrade(in string) (*TradeInfo, error) {
 
 func (h *KrakenHandler) Parse(in []byte) (ws.ListenChan, error) {
 
+	fmt.Println("===========================")
+
 	if strings.Contains(string(in), tickerChannel) {
 		return h.ToTickers(in)
 	} else if strings.Contains(string(in), ordersChannel) {
@@ -142,6 +154,8 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "KrakenHandler.ToOrderBook"
 
+	fmt.Println("ob", string(in))
+
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
 		return ws.ListenChan{}, nil
 	}
@@ -166,11 +180,9 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		}
 		switch k {
 		case "as":
+			fallthrough
 		case "a":
 			for _, ask := range v {
-				if len(ask) == 0 {
-					continue
-				}
 				volume := ask[1]
 				if volume == 0 {
 					delete(h.asks[pair.String()], ask[0])
@@ -180,11 +192,9 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 				}
 			}
 		case "bs":
+			fallthrough
 		case "b":
 			for _, bid := range v {
-				if len(bid) == 0 {
-					continue
-				}
 				volume := bid[1]
 				if volume == 0 {
 					delete(h.bids[pair.String()], bid[0])
@@ -196,6 +206,22 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	}
 
 	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[pair.String()], h.bids[pair.String()])
+
+	fmt.Println("----- Asks -----")
+	for i, v := range parsedOrderBook.Asks {
+		if i > 10 {
+			break
+		}
+		fmt.Println(v.Price, v.Volume)
+	}
+
+	fmt.Println("----- Bids -----")
+	for i, v := range parsedOrderBook.Bids {
+		if i > 10 {
+			break
+		}
+		fmt.Println(v.Price, v.Volume)
+	}
 
 	return ws.ListenChan{
 		Pair:      pair,
@@ -230,7 +256,8 @@ func (h KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionReque
 			Event: "subscribe",
 			Pair:  pairsArray,
 			Subscription: KrakenSubscription{
-				Name: ordersChannel,
+				Name:  ordersChannel,
+				Depth: 25,
 			},
 		}
 

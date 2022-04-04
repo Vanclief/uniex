@@ -12,7 +12,8 @@ type KrakenSubscriptionRequest struct {
 }
 
 type KrakenSubscription struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Depth int    `json:"depth,omitempty"`
 }
 
 type KrakenSubscriptionResponse struct {
