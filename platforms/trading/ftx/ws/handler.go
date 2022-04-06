@@ -2,7 +2,6 @@ package ws
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -162,9 +161,9 @@ func (h *FTXHandler) toOrderBook(in []byte) (ws.ListenChan, error) {
 
 	stream := FTXOrderBookStream{}
 
-	if strings.Contains(string(in), `"type": "partial"`) {
-		fmt.Println(string(in))
-	}
+	// if strings.Contains(string(in), `"type": "partial"`) {
+	// 	fmt.Println(string(in))
+	// }
 
 	err := json.Unmarshal(in, &stream)
 	if err != nil {

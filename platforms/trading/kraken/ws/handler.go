@@ -116,8 +116,6 @@ func processTrade(in string) (*TradeInfo, error) {
 
 func (h *KrakenHandler) Parse(in []byte) (ws.ListenChan, error) {
 
-	fmt.Println("===========================")
-
 	if strings.Contains(string(in), tickerChannel) {
 		return h.ToTickers(in)
 	} else if strings.Contains(string(in), ordersChannel) {
@@ -154,6 +152,7 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	const op = "KrakenHandler.ToOrderBook"
 
+	fmt.Println("===========================")
 	fmt.Println("ob", string(in))
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
@@ -206,22 +205,6 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	}
 
 	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[pair.String()], h.bids[pair.String()])
-
-	fmt.Println("----- Asks -----")
-	for i, v := range parsedOrderBook.Asks {
-		if i > 10 {
-			break
-		}
-		fmt.Println(v.Price, v.Volume)
-	}
-
-	fmt.Println("----- Bids -----")
-	for i, v := range parsedOrderBook.Bids {
-		if i > 10 {
-			break
-		}
-		fmt.Println(v.Price, v.Volume)
-	}
 
 	return ws.ListenChan{
 		Pair:      pair,
