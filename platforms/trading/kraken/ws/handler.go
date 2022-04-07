@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vanclief/uniex/utils"
-
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
@@ -22,8 +20,7 @@ const (
 
 type KrakenHandler struct {
 	opts genericws.HandlerOptions
-	asks map[string]map[float64]float64
-	bids map[string]map[float64]float64
+	ob   map[string]market.OrderBook
 }
 
 type TradeInfo struct {
@@ -38,13 +35,14 @@ func NewHandler() *KrakenHandler {
 
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
-	h.asks = make(map[string]map[float64]float64)
-	h.bids = make(map[string]map[float64]float64)
+	h.ob = make(map[string]market.OrderBook)
 	return nil
 }
 
-func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) {
+func parseUpdates(input []byte) ([]market.OrderBookUpdate, market.Pair) {
 	var msg KrakenOrderBookPayload
+
+	updates := []market.OrderBookUpdate{}
 
 	if err := json.Unmarshal(input, &msg); err != nil {
 		return nil, market.Pair{}
@@ -56,7 +54,6 @@ func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) 
 		return nil, market.Pair{}
 	}
 
-	asksBids := make(map[string][][]float64)
 	for k, v := range temp {
 
 		str, _ := json.Marshal(v)
@@ -66,17 +63,30 @@ func generateMapFromWsInput(input []byte) (map[string][][]float64, market.Pair) 
 
 		str2 := strings.ReplaceAll(string(str), `,"r"`, "")
 		str2 = strings.ReplaceAll(str2, `"`, "")
-		var mapItem [][]float64
+		var mapItems [][]float64
 
-		err = json.Unmarshal([]byte(str2), &mapItem)
+		err = json.Unmarshal([]byte(str2), &mapItems)
 		if err != nil {
 			return nil, market.Pair{}
 		}
 
-		asksBids[k] = mapItem
+		var side string
+
+		switch k {
+		case "a", "as":
+			side = "ask"
+		case "b", "bs":
+			side = "bid"
+		}
+
+		for _, item := range mapItems {
+			update := market.OrderBookUpdate{Price: item[0], Volume: item[1], Side: side}
+			updates = append(updates, update)
+		}
+
 	}
 
-	return asksBids, pairStringToMarketPair(msg.Pair)
+	return updates, pairStringToMarketPair(msg.Pair)
 }
 
 func pairStringToMarketPair(in string) market.Pair {
@@ -159,56 +169,27 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, nil
 	}
 
-	asksBids, pair := generateMapFromWsInput(in)
+	updates, pair := parseUpdates(in)
 
-	if asksBids == nil {
-		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid order book", nil)
+	if _, ok := h.ob[pair.String()]; !ok {
+		h.ob[pair.String()] = market.NewOrderBook(
+			[]market.OrderBookRow{},
+			[]market.OrderBookRow{},
+			25,
+		)
 	}
 
-	if _, ok := h.asks[pair.String()]; !ok {
-		h.asks[pair.String()] = make(map[float64]float64)
+	ob := h.ob[pair.String()]
+
+	for _, update := range updates {
+		ob.ApplyUpdate(update)
 	}
 
-	if _, ok := h.bids[pair.String()]; !ok {
-		h.bids[pair.String()] = make(map[float64]float64)
-	}
-
-	for k, v := range asksBids {
-		if len(v) == 0 {
-			continue
-		}
-		switch k {
-		case "as":
-			fallthrough
-		case "a":
-			for _, ask := range v {
-				volume := ask[1]
-				if volume == 0 {
-					delete(h.asks[pair.String()], ask[0])
-				} else {
-
-					h.asks[pair.String()][ask[0]] = ask[1]
-				}
-			}
-		case "bs":
-			fallthrough
-		case "b":
-			for _, bid := range v {
-				volume := bid[1]
-				if volume == 0 {
-					delete(h.bids[pair.String()], bid[0])
-				} else {
-					h.bids[pair.String()][bid[0]] = bid[1]
-				}
-			}
-		}
-	}
-
-	parsedOrderBook := utils.GenerateOrderBookFromMap(h.asks[pair.String()], h.bids[pair.String()])
+	h.ob[pair.String()] = ob
 
 	return ws.ListenChan{
 		Pair:      pair,
-		OrderBook: parsedOrderBook,
+		OrderBook: h.ob[pair.String()],
 		IsValid:   true,
 	}, nil
 }
