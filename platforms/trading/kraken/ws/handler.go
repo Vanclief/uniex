@@ -2,6 +2,7 @@ package ws
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+
+	"github.com/buger/jsonparser"
 )
 
 const (
@@ -29,6 +32,10 @@ type TradeInfo struct {
 	Pair       market.Pair
 }
 
+type orderBookRef struct {
+	updates []market.OrderBookUpdate
+}
+
 func NewHandler() *KrakenHandler {
 	return &KrakenHandler{}
 }
@@ -40,53 +47,22 @@ func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 }
 
 func parseUpdates(input []byte) ([]market.OrderBookUpdate, market.Pair) {
-	var msg KrakenOrderBookPayload
-
-	updates := []market.OrderBookUpdate{}
-
-	if err := json.Unmarshal(input, &msg); err != nil {
-		return nil, market.Pair{}
+	obRef := orderBookRef{
+		updates: []market.OrderBookUpdate{},
 	}
 
-	var temp map[string]interface{}
-	err := json.Unmarshal(msg.Data, &temp)
+	data, pair, err := getDataAndPair(input)
 	if err != nil {
 		return nil, market.Pair{}
 	}
 
-	for k, v := range temp {
-
-		str, _ := json.Marshal(v)
-		if !strings.Contains(string(str), "[[") {
-			continue
-		}
-
-		str2 := strings.ReplaceAll(string(str), `,"r"`, "")
-		str2 = strings.ReplaceAll(str2, `"`, "")
-		var mapItems [][]float64
-
-		err = json.Unmarshal([]byte(str2), &mapItems)
-		if err != nil {
+	for _, key := range []string{"a", "as", "b", "bs"} {
+		if fErr := fillOrderBookUpdates(&obRef, data, key); fErr != nil {
 			return nil, market.Pair{}
 		}
-
-		var side string
-
-		switch k {
-		case "a", "as":
-			side = "ask"
-		case "b", "bs":
-			side = "bid"
-		}
-
-		for _, item := range mapItems {
-			update := market.OrderBookUpdate{Price: item[0], Volume: item[1], Side: side}
-			updates = append(updates, update)
-		}
-
 	}
 
-	return updates, pairStringToMarketPair(msg.Pair)
+	return obRef.updates, pairStringToMarketPair(pair)
 }
 
 func pairStringToMarketPair(in string) market.Pair {
@@ -265,4 +241,54 @@ func (h KrakenHandler) VerifySubscriptionResponse(in []byte) error {
 	}
 
 	return ez.New(op, ez.EINTERNAL, "Error subscribing to Kraken", nil)
+}
+
+func getDataAndPair(input []byte) ([]byte, string, error) {
+	var pair string
+	var data []byte
+	var err error
+
+	if data, _, _, err = jsonparser.Get(input, "[1]"); err != nil {
+		return data, pair, err
+	}
+
+	if pair, err = jsonparser.GetString(input, "[3]"); err != nil {
+		return data, pair, err
+	}
+
+	return data, pair, nil
+}
+
+func fillOrderBookUpdates(orderBookRef *orderBookRef, data []byte, key string) error {
+	var err error
+	side := "ask"
+	if key == "b" || key == "bs" {
+		side = "bid"
+	}
+
+	if _, pErr := jsonparser.ArrayEach(data, func(dataItem []byte, dataType jsonparser.ValueType, offset int, err error) {
+		priceStr, err := jsonparser.GetString(dataItem, "[0]")
+		if err != nil {
+			return
+		}
+		volumeStr, err := jsonparser.GetString(dataItem, "[1]")
+		if err != nil {
+			return
+		}
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			return
+		}
+		volume, err := strconv.ParseFloat(volumeStr, 64)
+		if err != nil {
+			return
+		}
+		update := market.OrderBookUpdate{Price: price, Volume: volume, Side: side}
+		orderBookRef.updates = append(orderBookRef.updates, update)
+	}, key); pErr != nil {
+		if !errors.Is(pErr, jsonparser.KeyPathNotFoundError) {
+			return pErr
+		}
+	}
+	return err
 }
