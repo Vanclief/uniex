@@ -157,6 +157,7 @@ func (c *baseClient) Listen(ctx context.Context) (<-chan ws.ListenChan, error) {
 				log.Error().
 					Str("OP", op).
 					Str("Exchange", c.name).
+					Str("Error", fmt.Sprintf("%v", r)).
 					Msg(fmt.Sprintf("stackatrace: \n %s", debug.Stack()))
 			}
 		}()

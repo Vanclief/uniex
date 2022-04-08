@@ -20,6 +20,10 @@ const (
 	tickerChannel = "trade" // We use the trade for the ticker
 )
 
+var (
+	ErrUnknownPair = errors.New("unknown pair")
+)
+
 type KrakenHandler struct {
 	opts genericws.HandlerOptions
 	ob   map[string]market.OrderBook
@@ -50,8 +54,12 @@ func parseUpdates(input []byte) ([]market.OrderBookUpdate, market.Pair) {
 		updates: []market.OrderBookUpdate{},
 	}
 
-	data, pair, err := getDataAndPair(input)
+	data, rawPair, err := getDataAndPair(input)
 	if err != nil {
+		return nil, market.Pair{}
+	}
+	pair, pErr := pairStringToMarketPair(rawPair)
+	if pErr != nil {
 		return nil, market.Pair{}
 	}
 
@@ -61,11 +69,15 @@ func parseUpdates(input []byte) ([]market.OrderBookUpdate, market.Pair) {
 		}
 	}
 
-	return obRef.updates, pairStringToMarketPair(pair)
+	return obRef.updates, pair
 }
 
-func pairStringToMarketPair(in string) market.Pair {
+func pairStringToMarketPair(in string) (market.Pair, error) {
 	split := strings.Split(in, "/")
+	if len(split) != 2 {
+		return market.Pair{}, ErrUnknownPair
+	}
+
 	return market.Pair{
 		Base: market.Asset{
 			Symbol: split[0],
@@ -73,7 +85,7 @@ func pairStringToMarketPair(in string) market.Pair {
 		Quote: market.Asset{
 			Symbol: split[1],
 		},
-	}
+	}, nil
 }
 
 func processTrade(in string) (*TradeInfo, error) {
@@ -92,10 +104,16 @@ func processTrade(in string) (*TradeInfo, error) {
 	volume, _ := strconv.ParseFloat(tradeBody[0][1], 64)
 	pairStr := strings.Split(in, `"trade",`)
 	pairWithQuotes := strings.ReplaceAll(pairStr[1][:len(pairStr[1])-1], `"`, "")
+
+	pair, pErr := pairStringToMarketPair(pairWithQuotes)
+	if pErr != nil {
+		return nil, ez.Wrap(op, ErrUnknownPair)
+	}
+
 	return &TradeInfo{
 		LastPrice:  price,
 		LastVolume: volume,
-		Pair:       pairStringToMarketPair(pairWithQuotes),
+		Pair:       pair,
 	}, nil
 }
 
@@ -250,6 +268,10 @@ func getDataAndPair(input []byte) ([]byte, string, error) {
 
 	if pair, err = jsonparser.GetString(input, "[3]"); err != nil {
 		return data, pair, err
+	}
+
+	if pair == "" {
+		return data, pair, ErrUnknownPair
 	}
 
 	return data, pair, nil
