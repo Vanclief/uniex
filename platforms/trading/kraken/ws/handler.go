@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/vanclief/ez"
@@ -25,6 +26,8 @@ var (
 )
 
 type KrakenHandler struct {
+	mu   sync.Mutex
+	ch   chan ws.ListenChan
 	opts genericws.HandlerOptions
 	ob   map[string]market.OrderBook
 }
@@ -46,6 +49,7 @@ func NewHandler() *KrakenHandler {
 func (h *KrakenHandler) Init(opts genericws.HandlerOptions) error {
 	h.opts = opts
 	h.ob = make(map[string]market.OrderBook)
+	h.ch = make(chan ws.ListenChan)
 	return nil
 }
 
@@ -152,13 +156,7 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
-	const op = "KrakenHandler.ToOrderBook"
-
-	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
-		return ws.ListenChan{}, nil
-	}
-
+func (h *KrakenHandler) temp(in []byte) {
 	updates, pair := parseUpdates(in)
 
 	if _, ok := h.ob[pair.String()]; !ok {
@@ -172,16 +170,33 @@ func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
 	ob := h.ob[pair.String()]
 
 	for _, update := range updates {
-		ob.ApplyUpdate(update)
+		err := ob.ApplyUpdate(update)
+		if err != nil {
+			return
+		}
 	}
 
+	h.mu.Lock()
 	h.ob[pair.String()] = ob
-
-	return ws.ListenChan{
+	h.mu.Unlock()
+	
+	h.ch <- ws.ListenChan{
 		Pair:      pair,
 		OrderBook: h.ob[pair.String()],
 		IsValid:   true,
-	}, nil
+	}
+}
+
+func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
+	const op = "KrakenHandler.ToOrderBook"
+
+	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
+		return ws.ListenChan{}, nil
+	}
+
+	go h.temp(in)
+
+	return <-h.ch, nil
 }
 
 func (h KrakenHandler) GetSettings() (genericws.Settings, error) {
