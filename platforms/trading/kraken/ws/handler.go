@@ -26,7 +26,7 @@ var (
 )
 
 type KrakenHandler struct {
-	mu   sync.Mutex
+	sync.Mutex
 	ch   chan ws.ListenChan
 	opts genericws.HandlerOptions
 	ob   map[string]market.OrderBook
@@ -156,9 +156,10 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 	}, nil
 }
 
-func (h *KrakenHandler) temp(in []byte) {
+func (h *KrakenHandler) updateOBMap(in []byte) {
 	updates, pair := parseUpdates(in)
 
+	h.Lock()
 	if _, ok := h.ob[pair.String()]; !ok {
 		h.ob[pair.String()] = market.NewOrderBook(
 			[]market.OrderBookRow{},
@@ -169,6 +170,8 @@ func (h *KrakenHandler) temp(in []byte) {
 
 	ob := h.ob[pair.String()]
 
+	h.Unlock()
+
 	for _, update := range updates {
 		err := ob.ApplyUpdate(update)
 		if err != nil {
@@ -176,10 +179,10 @@ func (h *KrakenHandler) temp(in []byte) {
 		}
 	}
 
-	h.mu.Lock()
+	h.Lock()
 	h.ob[pair.String()] = ob
-	h.mu.Unlock()
-	
+	h.Unlock()
+
 	h.ch <- ws.ListenChan{
 		Pair:      pair,
 		OrderBook: h.ob[pair.String()],
@@ -188,24 +191,23 @@ func (h *KrakenHandler) temp(in []byte) {
 }
 
 func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {
-	const op = "KrakenHandler.ToOrderBook"
 
 	if string(in) == `{"event":"heartbeat"}` || strings.Contains(string(in), `"status":"subscribed"`) {
 		return ws.ListenChan{}, nil
 	}
 
-	go h.temp(in)
+	go h.updateOBMap(in)
 
 	return <-h.ch, nil
 }
 
-func (h KrakenHandler) GetSettings() (genericws.Settings, error) {
+func (h *KrakenHandler) GetSettings() (genericws.Settings, error) {
 	return genericws.Settings{
 		Endpoint: "wss://ws.kraken.com",
 	}, nil
 }
 
-func (h KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
+func (h *KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionRequest, error) {
 	const op = "KrakenHandler.GetSubscriptionRequests"
 
 	var requests []genericws.SubscriptionRequest
@@ -258,7 +260,7 @@ func (h KrakenHandler) GetSubscriptionsRequests() ([]genericws.SubscriptionReque
 	return requests, nil
 }
 
-func (h KrakenHandler) VerifySubscriptionResponse(in []byte) error {
+func (h *KrakenHandler) VerifySubscriptionResponse(in []byte) error {
 	const op = "KrakenHandler.VerifySubscriptionResponse"
 
 	if strings.Contains(string(in), `"status":"subscribed"`) {
