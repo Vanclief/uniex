@@ -160,6 +160,7 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 	updates, pair := parseUpdates(in)
 
 	h.Lock()
+
 	if _, ok := h.ob[pair.String()]; !ok {
 		h.ob[pair.String()] = market.NewOrderBook(
 			[]market.OrderBookRow{},
@@ -168,9 +169,9 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 		)
 	}
 
-	ob := h.ob[pair.String()]
-
 	h.Unlock()
+
+	ob := h.ob[pair.String()]
 
 	for _, update := range updates {
 		err := ob.ApplyUpdate(update)
@@ -180,7 +181,9 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 	}
 
 	h.Lock()
+
 	h.ob[pair.String()] = ob
+
 	h.Unlock()
 
 	h.ch <- ws.ListenChan{

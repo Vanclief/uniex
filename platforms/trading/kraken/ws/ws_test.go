@@ -50,10 +50,12 @@ func TestWs(t *testing.T) {
 			if msg.OrderBook.Time > 0 {
 				if len(msg.OrderBook.Bids) > 0 && len(msg.OrderBook.Asks) > 0 {
 					if msg.OrderBook.Asks[0].Price < msg.OrderBook.Bids[0].Price {
-						msg.OrderBook.Print()
+						//msg.OrderBook.Print()
 						t.FailNow()
 					}
-					// fmt.Println(msg.OrderBook.Asks[0].Price, msg.OrderBook.Bids[0].Price)
+					//msg.OrderBook.Print()
+				} else {
+					fmt.Println("empty")
 				}
 				//fmt.Println("ob", msg.OrderBook.String())
 			}
