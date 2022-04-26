@@ -19,13 +19,13 @@ func TestWs(t *testing.T) {
 		Quote: market.Asset{Symbol: "USD"},
 	}
 
-	eth := market.Pair{
-		Base:  market.Asset{Symbol: "ETH"},
-		Quote: market.Asset{Symbol: "USD"},
-	}
+	//eth := market.Pair{
+	//	Base:  market.Asset{Symbol: "ETH"},
+	//	Quote: market.Asset{Symbol: "USD"},
+	//}
 
 	opts = append(opts, genericws.WithSubscriptionTo(btc))
-	opts = append(opts, genericws.WithSubscriptionTo(eth))
+	//opts = append(opts, genericws.WithSubscriptionTo(eth))
 
 	handler := NewHandler()
 
@@ -53,7 +53,7 @@ func TestWs(t *testing.T) {
 						//msg.OrderBook.Print()
 						t.FailNow()
 					}
-					//msg.OrderBook.Print()
+					fmt.Println(msg.Pair.String(), len(msg.OrderBook.Asks), len(msg.OrderBook.Bids))
 				} else {
 					fmt.Println("empty")
 				}

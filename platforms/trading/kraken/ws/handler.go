@@ -3,17 +3,15 @@ package ws
 import (
 	"encoding/json"
 	"errors"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
+	"github.com/buger/jsonparser"
 	"github.com/vanclief/ez"
 	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
-
-	"github.com/buger/jsonparser"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -179,11 +177,9 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 			return
 		}
 	}
-
 	h.Lock()
 
 	h.ob[pair.String()] = ob
-
 	h.Unlock()
 
 	h.ch <- ws.ListenChan{
