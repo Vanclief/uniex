@@ -3,15 +3,16 @@ package ws
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/buger/jsonparser"
 	"github.com/vanclief/ez"
-	"github.com/vanclief/finmod/market"
 	"github.com/vanclief/uniex/interfaces/ws"
 	"github.com/vanclief/uniex/interfaces/ws/genericws"
+	"github.com/vanclief/uniex/market"
+	"github.com/vanclief/uniex/utils"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
@@ -137,21 +138,24 @@ func (h *KrakenHandler) ToTickers(in []byte) (ws.ListenChan, error) {
 		return ws.ListenChan{}, nil
 	}
 
-	tradeInfo, err := processTrade(string(in))
+	_, err := processTrade(string(in))
 	if err != nil {
 		return ws.ListenChan{}, ez.New(op, ez.EINVALID, "invalid trade info", nil)
 	}
-	return ws.ListenChan{
-		IsValid: true,
-		Pair:    tradeInfo.Pair,
-		Tickers: []market.Ticker{
-			{
-				Time:   time.Now().Unix(),
-				Volume: tradeInfo.LastVolume,
-				Last:   tradeInfo.LastPrice,
-			},
-		},
-	}, nil
+
+	//temporalWS := ws.ListenChan{
+	//	IsValid: true,
+	//	Pair:    tradeInfo.Pair,
+	//	Tickers: []market.Ticker{
+	//		{
+	//			Time:   time.Now().Unix(),
+	//			Volume: tradeInfo.LastVolume,
+	//			Last:   tradeInfo.LastPrice,
+	//		},
+	//	},
+	//}
+
+	return ws.ListenChan{}, nil
 }
 
 func (h *KrakenHandler) updateOBMap(in []byte) {
@@ -172,6 +176,9 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 	ob := h.ob[pair.String()]
 
 	for _, update := range updates {
+		if update.Volume == 0 {
+			fmt.Println("volume 0")
+		}
 		err := ob.ApplyUpdate(update)
 		if err != nil {
 			return
@@ -182,11 +189,13 @@ func (h *KrakenHandler) updateOBMap(in []byte) {
 	h.ob[pair.String()] = ob
 	h.Unlock()
 
-	h.ch <- ws.ListenChan{
-		Pair:      pair,
-		OrderBook: h.ob[pair.String()],
-		IsValid:   true,
-	}
+	//Pair:      pair,
+	//	OrderBook: h.ob[pair.String()],
+	//		IsValid:   true,
+	//fmt.Println(len(h.ob[pair.String()].Asks), len(h.ob[pair.String()].Bids))
+	utils.CorrectOrderBookPrint(h.ob[pair.String()])
+
+	h.ch <- ws.ListenChan{}
 }
 
 func (h *KrakenHandler) ToOrderBook(in []byte) (ws.ListenChan, error) {

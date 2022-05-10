@@ -50,10 +50,13 @@ func TestWs(t *testing.T) {
 			if msg.OrderBook.Time > 0 {
 				if len(msg.OrderBook.Bids) > 0 && len(msg.OrderBook.Asks) > 0 {
 					if msg.OrderBook.Asks[0].Price < msg.OrderBook.Bids[0].Price {
-						//msg.OrderBook.Print()
+						msg.OrderBook.Print()
 						t.FailNow()
 					}
-					fmt.Println(msg.Pair.String(), len(msg.OrderBook.Asks), len(msg.OrderBook.Bids))
+					fmt.Println(len(msg.OrderBook.Asks), len(msg.OrderBook.Bids))
+					//fmt.Println("------------------------------------------------------")
+					//fmt.Println(msg.OrderBook.Asks[0].Price, "\t", msg.OrderBook.Bids[0].Price)
+					//fmt.Println(msg.OrderBook.Asks[len(msg.OrderBook.Asks)-1].Price, "\t", msg.OrderBook.Bids[len(msg.OrderBook.Bids)-1].Price)
 				} else {
 					fmt.Println("empty")
 				}
@@ -109,7 +112,7 @@ func BenchmarkWs(t *testing.B) {
 					fmt.Println("ob", msg.OrderBook.String())
 					t.FailNow()
 				}
-				// fmt.Println(msg.OrderBook.Asks[0].Price, msg.OrderBook.Bids[0].Price)
+				fmt.Println(msg.Pair.String(), len(msg.OrderBook.Asks), len(msg.OrderBook.Bids))
 			}
 			//fmt.Println("ob", msg.OrderBook.String())
 		}
